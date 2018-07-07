@@ -86,3 +86,12 @@ celerybeat-schedule
 *.iml
 out
 gen
+
+# metabase instance
+.metabase/
+*.db.mv.db
+*.db.trace.db
+
+# virtual environment
+venv/
+.venv/
