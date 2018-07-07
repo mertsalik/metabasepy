@@ -150,7 +150,6 @@ class CardResource(Resource):
         url = "{}/{}/query".format(self.endpoint, card_id)
         resp = requests.post(url=url, headers=self.prepare_headers())
         Resource.validate_response(response=resp)
-        # TODO: add / implement metabase query result parser
         return resp.json()
 
 
