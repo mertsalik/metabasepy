@@ -69,6 +69,10 @@ class DatabaseResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
+    def get_by_name(self, name):
+        all_dbs = self.get()
+        return [db for db in all_dbs if db['name'] == name]
+
     def delete(self, database_id):
         url = "{}/{}".format(self.endpoint, database_id)
         resp = requests.delete(url=url,
