@@ -3,3 +3,9 @@ from metabasepy.client import (
     AuthorizationFailedException,
     RequestException
 )
+
+from metabasepy.table_parser import (
+    MetabaseTableParser,
+    MetabaseTable,
+    MetabaseResultInvalidException
+)
