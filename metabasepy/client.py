@@ -114,6 +114,9 @@ class CardResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
+    def get_by_collection(self, collection_slug):
+        raise NotImplementedError()
+
     def post(self, database_id, name, query, **kwargs):
         request_data = {
             "name": name,
@@ -151,6 +154,40 @@ class CardResource(Resource):
         resp = requests.post(url=url, headers=self.prepare_headers())
         Resource.validate_response(response=resp)
         return resp.json()
+
+
+class CollectionResource(Resource):
+
+    @property
+    def endpoint(self):
+        return "{}/api/collection".format(self.base_url)
+
+    def get(self, collection_id=None, archived=False):
+        url = self.endpoint
+        if collection_id:
+            url = "{}/{}".format(self.endpoint, collection_id)
+        elif archived:
+            url = "{}?archived=true"
+        resp = requests.get(url=url, headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def post(self, name, color="#000000", **kwargs):
+        request_data = {
+            "name": name,
+            "description": kwargs.get('description'),
+            "color": color
+        }
+        resp = requests.post(url=self.endpoint, json=request_data,
+                             headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def delete(self, collection_id):
+        url = "{}/{}".format(self.endpoint, collection_id)
+        resp = requests.delete(url=url,
+                               headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
 
 
 class Client(object):
