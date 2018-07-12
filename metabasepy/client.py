@@ -191,7 +191,96 @@ class CollectionResource(Resource):
 
 
 class UserResource(Resource):
-    pass
+
+    @property
+    def endpoint(self):
+        return "{}/api/user".format(self.base_url)
+
+    def get(self, user_id=None):
+        url = self.endpoint
+        if user_id:
+            url = "{}/{}".format(self.endpoint, user_id)
+
+        resp = requests.get(url=url, headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def current(self):
+        url = "{}/current".format(self.endpoint)
+        resp = requests.get(url=url, headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def post(self, first_name, last_name, email, password):
+        request_data = {
+            "first_name": first_name,
+            "last_name": last_name,
+            "email": email,
+            "password": password
+        }
+        resp = requests.post(url=self.endpoint, json=request_data,
+                             headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        json_response = resp.json()
+        return json_response['id']
+
+    def delete(self, user_id):
+        url = "{}/{}".format(self.endpoint, user_id)
+        resp = requests.delete(url=url,
+                               headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+
+    def send_invite(self, user_id):
+        url = "{}/{}/send_invite".format(self.endpoint, user_id)
+        resp = requests.post(url=url, headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def password(self, user_id, password, old_password):
+        url = "{}/{}/password".format(self.endpoint, user_id)
+        request_data = {
+            "password": password,
+            "old_password": old_password
+        }
+        resp = requests.put(url=url, json=request_data,
+                            headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+
+class UtilityResource(Resource):
+
+    @property
+    def endpoint(self):
+        return "{}/api/util".format(self.endpoint)
+
+    def logs(self):
+        url = "{}/logs".format(self.endpoint)
+        resp = requests.get(url=url, headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def random_token(self):
+        url = "{}/random_token".format(self.endpoint)
+        resp = requests.get(url=url, headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def stats(self):
+        url = "{}/stats".format(self.endpoint)
+        resp = requests.get(url=url, headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def password_check(self, password):
+        url = "{}/password_check".format(self.endpoint)
+        request_data = {
+            "password": password,
+        }
+        resp = requests.post(url=url, json=request_data,
+                             headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        return resp.json()
 
 
 class Client(object):
@@ -232,3 +321,11 @@ class Client(object):
     @property
     def collections(self):
         return CollectionResource(base_url=self.base_url, token=self.token)
+
+    @property
+    def users(self):
+        return UserResource(base_url=self.base_url, token=self.token)
+
+    @property
+    def utils(self):
+        return UtilityResource(base_url=self.base_url, token=self.token)
