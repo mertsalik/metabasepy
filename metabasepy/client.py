@@ -190,6 +190,10 @@ class CollectionResource(Resource):
         Resource.validate_response(response=resp)
 
 
+class UserResource(Resource):
+    pass
+
+
 class Client(object):
     def __init__(self, username, password, base_url, **kwargs):
         self.__username = username
@@ -224,3 +228,7 @@ class Client(object):
     @property
     def cards(self):
         return CardResource(base_url=self.base_url, token=self.token)
+
+    @property
+    def collections(self):
+        return CollectionResource(base_url=self.base_url, token=self.token)
