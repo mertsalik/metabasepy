@@ -115,7 +115,14 @@ class CardResource(Resource):
         return resp.json()
 
     def get_by_collection(self, collection_slug):
-        raise NotImplementedError()
+        """
+        :param collection_slug:
+        :return:
+        """
+        url = "{}?f=all&collection={}".format(self.endpoint, collection_slug)
+        resp = requests.get(url=url, headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
+        return resp.json()
 
     def post(self, database_id, name, query, **kwargs):
         request_data = {
