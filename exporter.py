@@ -2,6 +2,7 @@ import argparse
 import os
 import json
 from urllib.parse import urlparse
+from slugify import slugify
 
 from metabasepy.client import Client, AuthorizationFailedException
 
@@ -27,7 +28,7 @@ def downoad_cards(username, password, base_url, destination_directory,
         default_collection_path = os.path.join(destination_directory, "default")
         create_dir(default_collection_path)
         for card_info in cli.cards.get():
-            card_name = card_info.get('name', "Question")
+            card_name = slugify(card_info.get('name', "Question"))
             try:
                 sql_query = card_info['dataset_query']['native']['query']
             except KeyError as ke:
@@ -42,15 +43,22 @@ def downoad_cards(username, password, base_url, destination_directory,
                 f.write(sql_query)
     else:
         for collection_data in all_collections:
-            create_dir(os.path.join(destination_directory,
-                                  collection_data.get('name')))
+            collection_directory = os.path.join(destination_directory,
+                                  collection_data.get('name'))
+            create_dir(collection_directory)
 
             for card_info in cli.cards.get_by_collection(
                     collection_data.get('slug')):
-                card_name = card_info.get('name', "Question")
-                sql_query = card_info['dataset_query']['native']['query']
+                card_name = slugify(card_info.get('name', "Question"))
+                try:
+                    sql_query = card_info['dataset_query']['native']['query']
+                except KeyError as ke:
+                    # Probably this is not a native query, skip this
+                    print(ke)
+                    print("skipping {}.".format(card_name))
+                    continue
 
-                sql_save_path = os.path.join(destination_directory,
+                sql_save_path = os.path.join(collection_directory,
                                              "{}.sql".format(card_name))
                 with open(sql_save_path, 'w') as f:
                     f.write(sql_query)
@@ -100,6 +108,7 @@ if __name__ == '__main__':
             downoad_cards(destination_directory=destination_directory,
                           **credential_info)
         except AuthorizationFailedException as afex:
-            print("Authentication failed for {}".format(
-                credential_info.get('username')))
+            print("Authentication failed for {} -> {}".format(
+                credential_info.get('username'),
+                credential_info.get('base_url')))
             print("Skipping {}".format(credential_info.get('username')))
