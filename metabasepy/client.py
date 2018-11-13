@@ -1,4 +1,6 @@
 import requests
+import urllib
+import json
 
 
 class AuthorizationFailedException(Exception):
@@ -167,7 +169,7 @@ class CardResource(Resource):
         if format and format in ['csv', 'json', 'xlsx']:
             url = "{}/{}".format(url, format)
         resp = requests.post(url=url, headers=self.prepare_headers(),
-                             json=parameters)
+                             params=urllib.urlencode({ k: json.dumps(v) for k,v in parameters.iteritems() }))
         Resource.validate_response(response=resp)
         return resp.json()
 
