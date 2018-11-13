@@ -162,6 +162,15 @@ class CardResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
+    def download(self, card_id, format=None, parameters=None):
+        url = "{}/{}/query".format(self.endpoint, card_id)
+        if format and format in ['csv', 'json', 'xlsx']:
+            url = "{}/{}".format(url, format)
+        resp = requests.post(url=url, headers=self.prepare_headers(),
+                             json=parameters)
+        Resource.validate_response(response=resp)
+        return resp.json()
+
 
 class CollectionResource(Resource):
 
