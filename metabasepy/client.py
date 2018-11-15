@@ -1,6 +1,9 @@
 import requests
-import urllib
 import json
+try:
+    from urllib import urlencode
+except ImportError:
+    from urllib.parse import urlencode
 
 
 class AuthorizationFailedException(Exception):
@@ -164,12 +167,16 @@ class CardResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
-    def download(self, card_id, format=None, parameters=None):
+    def download(self, card_id, format, parameters=None):
         url = "{}/{}/query".format(self.endpoint, card_id)
-        if format and format in ['csv', 'json', 'xlsx']:
-            url = "{}/{}".format(url, format)
+        if format not in ['csv', 'json', 'xlsx']:
+            raise ValueError('{} format not supported.'.format(format))
+        url = "{}/{}".format(url, format)
+        if parameters:
+            parameters = urlencode({ k: json.dumps(v)
+                                     for k,v in parameters.items() })
         resp = requests.post(url=url, headers=self.prepare_headers(),
-                             params=urllib.urlencode({ k: json.dumps(v) for k,v in parameters.iteritems() }))
+                             params=parameters)
         Resource.validate_response(response=resp)
         return resp.json()
 
