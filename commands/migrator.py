@@ -26,7 +26,7 @@ def migrate(source_client, destination_client, database_mappings):
             collection_id = destination_client.collections.post(
                 **collection_data)
         except RequestException as rex:
-            if " already exists" in rex.msg:
+            if "already exists" in rex.message:
                 dest_collections = destination_client.collections.get()
                 for collection in dest_collections:
                     if collection["name"] == collection_data["name"]:
