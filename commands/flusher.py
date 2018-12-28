@@ -5,9 +5,9 @@ from metabasepy.client import Client
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        prog="metabase_query_exporter",
-        usage="exporter -c /your/config/file/path.json",
-        description="Download and save metabase Cards into folders."
+        prog="flush_queries",
+        usage="flusher -c /your/config/file/path.json",
+        description="Delete cards (queries) from metabase server."
     )
     parser.add_argument('--configuration_file', '-c',
                         dest='conf_file_path',
