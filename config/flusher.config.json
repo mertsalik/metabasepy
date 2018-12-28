@@ -1,6 +1,6 @@
 {
   "name": "Metabase A",
-  "username": "mert.salik@akinon.com",
-  "password": "admin123456",
+  "username": "john.doe@email.com",
+  "password": "******",
   "base_url": "http://localhost:3000"
 }
