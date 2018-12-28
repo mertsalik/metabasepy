@@ -1,5 +1,6 @@
 import requests
 import json
+
 try:
     from urllib import urlencode
 except ImportError:
@@ -141,8 +142,7 @@ class CardResource(Resource):
                 "native": {
                     "query": query,
                     "collection": kwargs.get('collection', None),
-                    "template_tags": {
-                    }
+                    "template_tags": kwargs.get('template_tags', {})
                 }
             },
             "description": kwargs.get('description', None),
@@ -173,8 +173,8 @@ class CardResource(Resource):
             raise ValueError('{} format not supported.'.format(format))
         url = "{}/{}".format(url, format)
         if parameters:
-            parameters = urlencode({ k: json.dumps(v)
-                                     for k,v in parameters.items() })
+            parameters = urlencode({k: json.dumps(v)
+                                    for k, v in parameters.items()})
         resp = requests.post(url=url, headers=self.prepare_headers(),
                              params=parameters)
         Resource.validate_response(response=resp)
