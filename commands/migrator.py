@@ -17,6 +17,11 @@ class InvalidCardException(Exception):
         Exception.__init__(self, msg, *args, **kwargs)
 
 
+class CollectionException(Exception):
+    def __init__(self, msg=None, *args, **kwargs):
+        Exception.__init__(self, msg, *args, **kwargs)
+
+
 def migrate(source_client, destination_client, database_mappings):
     all_collections = source_client.collections.get()
 
@@ -36,7 +41,7 @@ def migrate(source_client, destination_client, database_mappings):
                         collection_id = collection['id']
                         break
             if not collection_id:
-                raise ValueError("Collections cant be created!")
+                raise CollectionException("Collections cant be created!")
 
         for card_info in source_client.cards.get_by_collection(
                 collection_data.get('slug')):
