@@ -1,0 +1,26 @@
+{
+  "source": {
+    "name": "Client A",
+    "username": "john.doe@email.com",
+    "password": "*******",
+    "base_url": "https://localhost:3001"
+  },
+  "destination": {
+    "name": "Client B",
+    "username": "john.doe@email.com",
+    "password": "************",
+    "base_url": "http://localhost:3000"
+  },
+  "mappings": {
+    "databases": [
+      {
+        "source": "books_db_a",
+        "destination": "books_db_b"
+      },
+      {
+        "source": "sales_db_a",
+        "destination": "sales_db_b"
+      }
+    ]
+  }
+}
