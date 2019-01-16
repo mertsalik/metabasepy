@@ -1,0 +1,6 @@
+{
+  "name": "Metabase A",
+  "username": "john.doe@email.com",
+  "password": "******",
+  "base_url": "http://localhost:3000"
+}
