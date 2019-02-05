@@ -34,3 +34,30 @@ for card_info in all_cards:
 	print(sql_query)
 
 ```
+
+
+Get Card Data 
+
+```
+
+from metabasepy import Client, MetabaseTableParser
+
+metabase_client_config = {
+	'username': 'foo',
+	'password': 'bar',
+	'base_url': 'http://localhost:3000'
+}
+cli = Client(**metabase_client_config)
+
+query_result = cli.cards.query(card_id=1)
+
+data_table = MetabaseTableParser.get_table(query_result)
+
+for col in data_table.columns:
+    print col
+    
+    
+for line in data_table.rows:
+    print line    
+
+```
