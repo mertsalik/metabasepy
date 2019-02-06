@@ -1,10 +1,14 @@
 import argparse
 import json
-import sys, os
+import sys
+import os
+import logging
 
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from metabasepy import Client, RequestException
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigurationException(Exception):
@@ -68,11 +72,13 @@ def migrate(source_client, destination_client, database_mappings):
                                               template_tags=template_tags,
                                               collection_id=collection_id)
             except InvalidCardException as icex:
+                logger.info(icex)
                 continue
             except KeyError as ke:
                 # Probably this is not a native query, skip this
-                print(ke)
-                print("skipping {}.".format(card_name))
+
+                logger.error(ke)
+                logger.error("skipping {}.".format(card_name))
                 continue
 
 
