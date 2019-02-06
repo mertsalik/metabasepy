@@ -3,8 +3,11 @@ import os
 import json
 from urllib.parse import urlparse
 from slugify import slugify
+import logging
 
 from metabasepy.client import Client, AuthorizationFailedException
+
+logger = logging.getLogger(__name__)
 
 
 def create_dir(dirname):
@@ -14,12 +17,11 @@ def create_dir(dirname):
         pass
 
 
-def downoad_cards(username, password, base_url, destination_directory,
-                  **kwargs):
-    print("authenticating {}".format(username))
-
+def download_cards(username, password, base_url, destination_directory,
+                   **kwargs):
     cli = Client(username=username, password=password, base_url=base_url)
     cli.authenticate()
+
     create_dir(destination_directory)
 
     all_collections = cli.collections.get()
@@ -33,8 +35,7 @@ def downoad_cards(username, password, base_url, destination_directory,
                 sql_query = card_info['dataset_query']['native']['query']
             except KeyError as ke:
                 # Probably this is not a native query, skip this
-                print(ke)
-                print("skipping {}.".format(card_name))
+                logger.error(ke)
                 continue
 
             sql_save_path = os.path.join(default_collection_path,
@@ -44,7 +45,7 @@ def downoad_cards(username, password, base_url, destination_directory,
     else:
         for collection_data in all_collections:
             collection_directory = os.path.join(destination_directory,
-                                  collection_data.get('name'))
+                                                collection_data.get('name'))
             create_dir(collection_directory)
 
             for card_info in cli.cards.get_by_collection(
@@ -54,8 +55,7 @@ def downoad_cards(username, password, base_url, destination_directory,
                     sql_query = card_info['dataset_query']['native']['query']
                 except KeyError as ke:
                     # Probably this is not a native query, skip this
-                    print(ke)
-                    print("skipping {}.".format(card_name))
+                    logger.error(ke)
                     continue
 
                 sql_save_path = os.path.join(collection_directory,
@@ -102,13 +102,14 @@ if __name__ == '__main__':
 
     for credential_info in credentials:
         metabase_uri = urlparse(credential_info.get('base_url'))
-        destination_directory = os.path.join(args.download_path, metabase_uri.netloc)
+        destination_directory = os.path.join(args.download_path,
+                                             metabase_uri.netloc)
         create_dir(destination_directory)
         try:
-            downoad_cards(destination_directory=destination_directory,
-                          **credential_info)
+            download_cards(destination_directory=destination_directory,
+                           **credential_info)
         except AuthorizationFailedException as afex:
-            print("Authentication failed for {} -> {}".format(
+            logger.error("Authentication failed for {} -> {}".format(
                 credential_info.get('username'),
                 credential_info.get('base_url')))
-            print("Skipping {}".format(credential_info.get('username')))
+            logger.error("Skipping {}".format(credential_info.get('username')))
