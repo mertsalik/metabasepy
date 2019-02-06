@@ -1,63 +1,22 @@
 
-### metabasepy
-
-Python wrapper for metabase rest api
-
-
-
-#### Export All Questions ( cards )
+# metabasepy: Python wrapper for metabase REST Api  
+[![](https://img.shields.io/pypi/v/metabasepy.svg?maxAge=3600)](https://pypi.org/project/metabasepy/)
+[![Coverage Status](https://coveralls.io/repos/github/mertsalik/metabasepy/badge.svg?branch=master)](https://coveralls.io/github/mertsalik/metabasepy?branch=master)
 
 
-```
-from metabasepy.client import Client, AuthorizationFailedException
+## Installing
 
-metabase_client_config = {
-	'username': 'foo',
-	'password': 'bar',
-	'base_url': 'http://localhost:3000'
-}
+Install metabasepy by running:
 
-cli = Client(**metabase_client_config)
-try:
-	cli.authenticate()
-except AuthorizationFailedException as ex:
-	# checkout your configurations
-	raise 
-
-all_cards = cli.cards.get()
-
-for card_info in all_cards:
-	card_name = card_info.get('name', "Question")
-	sql_query = card_info['dataset_query']['native']['query']
-
-	print(card_name)
-	print(sql_query)
-
+```shell
+pip install metabasepy
 ```
 
+## Documentation
 
-Get Card Data 
+- [User Guide][]
+- [Commands Tutorial][]
 
-```
+[User Guide]: ./docs/guide.md
+[Commands Tutorial]: ./docs/commands.md
 
-from metabasepy import Client, MetabaseTableParser
-
-metabase_client_config = {
-	'username': 'foo',
-	'password': 'bar',
-	'base_url': 'http://localhost:3000'
-}
-cli = Client(**metabase_client_config)
-
-query_result = cli.cards.query(card_id=1)
-
-data_table = MetabaseTableParser.get_table(query_result)
-
-for col in data_table.columns:
-    print col
-    
-    
-for line in data_table.rows:
-    print line    
-
-```
