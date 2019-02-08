@@ -18,11 +18,39 @@ cli.authenticate()
 ```
 ### Add Card to server
 
-```python
+Save new card with custom sql query:
 
+```python
+cli.cards.post(database_id=1,
+    name="Card Name (eg: Available Stocks)",
+    query="select * from your_db.table_name;")
 
 ```
 
+### List available Databases
+
+```python
+all_dbs = cli.databases.get()
+print(all_dbs.__dict__)
+```
+
+### Create new Collection
+
+```python
+cli.collections.post(name="Finance Reports", color="#ff0000")
+```
+
+### List all collections
+
+```python
+cli.collections.get()
+```
+
+You can also query collection by its id:
+
+```python
+cli.collections.get(collection_id=1)
+```
 
 ### Query SQL Data from Card
 
