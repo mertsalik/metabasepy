@@ -35,8 +35,9 @@ def migrate(source_client, destination_client, database_mappings):
         # create collection
         collection_id = None
         try:
-            collection_id = destination_client.collections.post(
+            collection_response = destination_client.collections.post(
                 **collection_data)
+            collection_id = collection_response.get('id')
         except RequestException as rex:
             if "already exists" in rex.message:
                 dest_collections = destination_client.collections.get()
@@ -80,6 +81,8 @@ def migrate(source_client, destination_client, database_mappings):
                 logger.error(ke)
                 logger.error("skipping {}.".format(card_name))
                 continue
+            except Exception as any_ex:
+                logger.error(any_ex)
 
 
 def get_database_mappings(source_client, destination_client,
