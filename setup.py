@@ -15,7 +15,7 @@ install_requires = ['requests >= 1.5.5', 'slugify']
 
 setup(
     name='metabasepy',
-    version='1.2.0',
+    version='1.4.0',
     use_scm_version=True,
     setup_requires=['setuptools_scm', 'future'],
     description='metabase api python client',
