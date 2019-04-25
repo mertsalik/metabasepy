@@ -27,62 +27,76 @@ class CollectionException(Exception):
 
 
 def migrate(source_client, destination_client, database_mappings):
+    created_card_ids = []
     all_collections = source_client.collections.get()
 
     # import queries that placed in collections
     for collection_data in all_collections:
 
         # create collection
-        collection_id = None
-        try:
-            collection_response = destination_client.collections.post(
-                **collection_data)
-            collection_id = collection_response.get('id')
-        except RequestException as rex:
-            if "already exists" in rex.message:
-                dest_collections = destination_client.collections.get()
-                for collection in dest_collections:
-                    if collection["name"] == collection_data["name"]:
-                        collection_id = collection['id']
-                        break
-            if not collection_id:
-                raise CollectionException("Collections cant be created!")
+        collection_id = create_collection(collection_data, destination_client)
 
         for card_info in source_client.cards.get_by_collection(
                 collection_data.get('slug')):
-            card_name = card_info.get('name', "Question")
-            try:
-                dataset_query = card_info.get('dataset_query', None)
-                if not dataset_query:
-                    raise InvalidCardException(
-                        msg="dataset_query does not exists")
-                native = dataset_query.get('native', None)
-                if not native:
-                    raise InvalidCardException(
-                        msg="dataset_query->native does not exists")
-                sql_query = native.get('query', None)
-                if not sql_query:
-                    raise InvalidCardException(
-                        msg="dataset_query->native->query does not exists")
-                template_tags = native.get('template_tags', None)
-                destination_db_id = database_mappings.get(
-                    card_info['database_id'], None)
-                destination_client.cards.post(database_id=destination_db_id,
-                                              name=card_name,
-                                              query=sql_query,
-                                              template_tags=template_tags,
-                                              collection_id=collection_id)
-            except InvalidCardException as icex:
-                logger.info(icex)
-                continue
-            except KeyError as ke:
-                # Probably this is not a native query, skip this
+            create_card(card_info, collection_id)
+            created_card_ids.append(card_info['id'])
 
-                logger.error(ke)
-                logger.error("skipping {}.".format(card_name))
-                continue
-            except Exception as any_ex:
-                logger.error(any_ex)
+    for card_info in source_client.cards.get():
+        if card_info.get('id') not in created_card_ids:
+            create_card(card_info)
+            created_card_ids.append(card_info['id'])
+
+
+def create_card(card_info, collection_id=None):
+    card_name = card_info.get('name', "Question")
+    try:
+        dataset_query = card_info.get('dataset_query', None)
+        if not dataset_query:
+            raise InvalidCardException(
+                msg="dataset_query does not exists")
+        native = dataset_query.get('native', None)
+        if not native:
+            raise InvalidCardException(
+                msg="dataset_query->native does not exists")
+        sql_query = native.get('query', None)
+        if not sql_query:
+            raise InvalidCardException(
+                msg="dataset_query->native->query does not exists")
+        template_tags = native.get('template_tags', None)
+        destination_db_id = database_mappings.get(
+            card_info['database_id'], None)
+        destination_client.cards.post(database_id=destination_db_id,
+                                      name=card_name,
+                                      query=sql_query,
+                                      template_tags=template_tags,
+                                      collection_id=collection_id)
+    except InvalidCardException as icex:
+        logger.info(icex)
+    except KeyError as ke:
+        # Probably this is not a native query, skip this
+
+        logger.error(ke)
+        logger.error("skipping {}.".format(card_name))
+    except Exception as any_ex:
+        logger.error(any_ex)
+
+
+def create_collection(collection_data, destination_client):
+    collection_id = None
+    try:
+        collection_response = destination_client.collections.post(
+            **collection_data)
+        collection_id = collection_response.get('id')
+    except RequestException as rex:
+        if "already exists" in rex.message:
+            dest_collections = destination_client.collections.get()
+            for collection in dest_collections:
+                if collection["name"] == collection_data["name"]:
+                    collection_id = collection['id']
+                    break
+        if not collection_id:
+            raise CollectionException("Collections cant be created!")
+    return collection_id
 
 
 def get_database_mappings(source_client, destination_client,
