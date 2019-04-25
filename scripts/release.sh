@@ -11,6 +11,8 @@ echo $1 > "$project_dir"/VERSION
 git tag -a "$1"
 git push --tag
 
+cd "$project_dir"
+
 rm -rf dist/*
 python setup.py bdist_wheel --universal
 twine check dist/*
