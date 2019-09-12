@@ -54,7 +54,7 @@ class Resource(object):
     def post(self, **kwargs):
         raise NotImplementedError()
 
-    def put(self):
+    def put(self, **kwargs):
         raise NotImplementedError()
 
     def delete(self, **kwargs):
@@ -153,6 +153,12 @@ class CardResource(Resource):
         Resource.validate_response(response=resp)
         json_response = resp.json()
         return json_response['id']
+
+    def put(self, card_id, **kwargs):
+        url = "{}/{}".format(self.endpoint, card_id)
+        resp = requests.put(url=url, json=kwargs,
+                            headers=self.prepare_headers())
+        Resource.validate_response(response=resp)
 
     def delete(self, card_id):
         url = "{}/{}".format(self.endpoint, card_id)
