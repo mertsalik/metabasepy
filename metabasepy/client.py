@@ -85,7 +85,7 @@ class DatabaseResource(Resource):
                                headers=self.prepare_headers())
         Resource.validate_response(resp)
 
-    def post(self, name, engine, host, port, dbname, user, ssl=False,
+    def post(self, name, engine, host, port, dbname, user, password, ssl=False,
              tunnel_port=22):
         request_data = {
             "name": name,
@@ -95,6 +95,7 @@ class DatabaseResource(Resource):
                 "port": port,
                 "dbname": dbname,
                 "user": user,
+                "password": password,
                 "ssl": ssl,
                 "tunnel_port": tunnel_port
             }
