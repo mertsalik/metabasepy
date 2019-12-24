@@ -45,7 +45,7 @@ class MetabaseTableParser(object):
             raise MetabaseResultInvalidException()
 
         data_requirements = {
-            'columns',
+            'cols',
             'rows',
             'native_form'
         }
@@ -66,7 +66,7 @@ class MetabaseTableParser(object):
         table = MetabaseTable()
         table.rows = metabase_response['data']['rows']
 
-        table.columns = metabase_response['data']['columns']
+        table.cols = metabase_response['data']['cols']
         table.native_query = metabase_response['data']['native_form']['query']
         table.status = metabase_response['status']
         table.database = metabase_response['json_query']['database']
