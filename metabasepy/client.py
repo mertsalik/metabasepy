@@ -138,11 +138,11 @@ class CardResource(Resource):
         return resp.json()
 
     def post(self, database_id, name, query, **kwargs):
+	if display 
         request_data = {
             "name": name,
-            "display": "scalar",
-            "visualization_settings": {
-            },
+            "display": kwargs.get('display', 'scalar'),
+            "visualization_settings": kwargs.get('visualization_settings'),
             "dataset_query": {
                 "database": database_id,
                 "type": "native",
