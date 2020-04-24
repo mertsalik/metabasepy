@@ -142,7 +142,7 @@ class CardResource(Resource):
         request_data = {
             "name": name,
             "display": kwargs.get('display', 'scalar'),
-            "visualization_settings": kwargs.get('visualization_settings'),
+            "visualization_settings": kwargs.get('visualization_settings', {}),
             "dataset_query": {
                 "database": database_id,
                 "type": "native",
