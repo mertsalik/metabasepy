@@ -300,7 +300,7 @@ class UtilityResource(Resource):
 
     @property
     def endpoint(self):
-        return "{}/api/util".format(self.endpoint)
+        return "{}/api/util".format(self.base_url)
 
     def logs(self):
         url = "{}/logs".format(self.endpoint)
