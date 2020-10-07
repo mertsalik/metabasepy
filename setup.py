@@ -15,10 +15,10 @@ install_requires = ['requests >= 1.5.5', 'slugify']
 
 setup(
     name='metabasepy',
-    version='1.5.0',
+    version='1.8.0',
     use_scm_version=True,
     setup_requires=['setuptools_scm', 'future'],
-    description='metabase api python client',
+    description='Python wrapper for Metabase REST API',
     long_description=README,
     long_description_content_type='text/markdown',
     author='mertsalik',
