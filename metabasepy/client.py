@@ -237,7 +237,8 @@ class CollectionResource(Resource):
             url = "{}/{}".format(self.endpoint, collection_id)
         elif archived:
             url = "{}?archived=true"
-        resp = requests.get(url=url, headers=self.prepare_headers(), verify=self.verify)
+        resp = requests.get(url=url, headers=self.prepare_headers(),
+                            verify=self.verify)
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -419,20 +420,36 @@ class Client(object):
 
     @property
     def databases(self):
-        return DatabaseResource(base_url=self.base_url, token=self.token, verify=self.verify)
+        return DatabaseResource(base_url=self.base_url,
+                                token=self.token,
+                                verify=self.verify)
 
     @property
     def cards(self):
-        return CardResource(base_url=self.base_url, token=self.token, verify=self.verify)
+        return CardResource(base_url=self.base_url,
+                            token=self.token,
+                            verify=self.verify)
 
     @property
     def collections(self):
-        return CollectionResource(base_url=self.base_url, token=self.token, verify=self.verify)
+        return CollectionResource(base_url=self.base_url,
+                                  token=self.token,
+                                  verify=self.verify)
 
     @property
     def users(self):
-        return UserResource(base_url=self.base_url, token=self.token, verify=self.verify)
+        return UserResource(base_url=self.base_url,
+                            token=self.token,
+                            verify=self.verify)
 
     @property
     def utils(self):
-        return UtilityResource(base_url=self.base_url, token=self.token, verify=self.verify)
+        return UtilityResource(base_url=self.base_url,
+                               token=self.token,
+                               verify=self.verify)
+
+    @property
+    def dataset(self):
+        return DatasetCommand(base_url=self.base_url,
+                              token=self.token,
+                              verify=self.verify)
