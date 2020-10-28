@@ -364,6 +364,31 @@ class UtilityResource(Resource):
         return resp.json()
 
 
+class DatasetCommand(ApiCommand):
+
+    @property
+    def endpoint(self):
+        return "{}/api/dataset".format(self.base_url)
+
+    def post(self, database_id, query):
+        """ Execute a query and retrieve the results in the usual format."""
+        request_data = {
+            "type": "native",
+            "native": {
+                "query": query,
+                "template-tags": {}
+            },
+            "database": database_id,
+            "parameters": []
+        }
+        resp = requests.post(url=self.endpoint, json=request_data,
+                             headers=self.prepare_headers(),
+                             verify=self.verify)
+        Resource.validate_response(response=resp)
+        json_response = resp.json()
+        return json_response
+
+
 class Client(object):
     def __init__(self, username, password, base_url, **kwargs):
         self.__username = username
