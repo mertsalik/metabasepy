@@ -1,3 +1,5 @@
+import re
+
 import requests
 import json
 
@@ -5,6 +7,27 @@ try:
     from urllib import urlencode
 except ImportError:
     from urllib.parse import urlencode
+
+
+def get_file_export_path(file_name):
+    from os import getcwd
+    from os.path import join
+    return join(getcwd(), file_name)
+
+
+def parse_filename_from_response_header(response):
+    if type(response) != requests.Response:
+        raise ValueError("{} is not a valid Response object!")
+
+    content_disposition = response.headers.get('Content-Disposition')
+    if not content_disposition:
+        return None
+
+    filenames = re.findall('filename=(.+)', content_disposition)
+    if not len(filenames):
+        return None
+    selected_filename = filenames[0]
+    return selected_filename.strip('"').strip("'")
 
 
 class AuthorizationFailedException(Exception):
@@ -367,6 +390,12 @@ class UtilityResource(Resource):
 
 class DatasetCommand(ApiCommand):
 
+    @staticmethod
+    def validate_export_format(export_format_value):
+        allowed_export_formats = ['api', 'csv', 'json', 'xlsx']
+        if export_format_value not in allowed_export_formats:
+            raise ValueError('{} not supported!'.format(export_format_value))
+
     @property
     def endpoint(self):
         return "{}/api/dataset".format(self.base_url)
@@ -388,6 +417,54 @@ class DatasetCommand(ApiCommand):
         Resource.validate_response(response=resp)
         json_response = resp.json()
         return json_response
+
+    def export(self, database_id, query, export_format, full_path=None):
+        """ redirects dataset query to available export endpoint,
+         saves it in folder given with to_file_path parameter
+         or current working directory by default."""
+
+        query_request_data = {
+            "type": "native",
+            "native": {
+                "query": query,
+                "template-tags": {}
+            },
+            "database": database_id,
+            "parameters": [],
+        }
+        request_data = {
+            "query": json.dumps(query_request_data)
+        }
+
+        headers = self.prepare_headers()
+        headers.update({'Content-Type': 'application/x-www-form-urlencoded'})
+
+        DatasetCommand.validate_export_format(
+            export_format_value=export_format)
+        command_url = "{command_endpoint}/{export_param}".format(
+            command_endpoint=self.endpoint,
+            export_param=export_format
+        )
+        resp = requests.post(url=command_url, data=request_data,
+                             headers=headers,
+                             verify=self.verify)
+
+        if not full_path:
+            file_name = parse_filename_from_response_header(response=resp) \
+                        or "metabase_dataset_export.{extension}".format(
+                extension=export_format)
+            export_file_path = get_file_export_path(file_name=file_name)
+        else:
+            export_file_path = full_path
+
+        file_access_mode = "w"
+        if type(resp.content) == bytes:
+            file_access_mode = "wb"
+
+        with open(file=export_file_path, mode=file_access_mode) as f:
+            f.write(resp.content)
+
+        return export_file_path
 
 
 class Client(object):
