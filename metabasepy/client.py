@@ -62,6 +62,35 @@ class Resource(object):
         raise NotImplementedError()
 
 
+class ApiCommand(object):
+    """ This is a general interface to implement a wrapper of endpoints which
+    only allows POST methods and not a resource representation. """
+
+    def __init__(self, **kwargs):
+        self.base_url = kwargs.get('base_url')
+        self.token = kwargs.get('token', None)
+        self.verify = kwargs.get('verify', True)
+
+    def prepare_headers(self):
+        return {
+            'X-Metabase-Session': self.token,
+            'Content-Type': 'application/json'
+        }
+
+    def post(self, **kwargs):
+        raise NotImplementedError()
+
+    @staticmethod
+    def validate_response(response):
+        status_code = response.status_code
+        if status_code not in [200, 201, 202]:
+            raise RequestException(message=response.content)
+
+    @property
+    def endpoint(self):
+        raise NotImplementedError()
+
+
 class DatabaseResource(Resource):
 
     @property
