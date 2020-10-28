@@ -466,6 +466,25 @@ class DatasetCommand(ApiCommand):
 
         return export_file_path
 
+    def duration(self, database_id, query):
+        """ Get historical query execution duration. """
+        request_data = {
+            "type": "native",
+            "native": {
+                "query": query,
+                "template-tags": {}
+            },
+            "database": database_id,
+            "parameters": []
+        }
+        command_url = "{}/duration".format(self.endpoint)
+        resp = requests.post(url=command_url, json=request_data,
+                             headers=self.prepare_headers(),
+                             verify=self.verify)
+        Resource.validate_response(response=resp)
+        json_response = resp.json()
+        return json_response
+
 
 class Client(object):
     def __init__(self, username, password, base_url, **kwargs):
