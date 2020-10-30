@@ -24,7 +24,7 @@ def parse_filename_from_response_header(response):
         return None
 
     filenames = re.findall('filename=(.+)', content_disposition)
-    if not len(filenames):
+    if not filenames:
         return None
     selected_filename = filenames[0]
     return selected_filename.strip('"').strip("'")
