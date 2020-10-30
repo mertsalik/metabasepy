@@ -42,7 +42,7 @@ class RequestException(Exception):
 class Resource(object):
     def __init__(self, **kwargs):
         self.base_url = kwargs.get('base_url')
-        self.token = kwargs.get('token', None)
+        self.token = kwargs.get('token')
         self.verify = kwargs.get('verify', True)
 
     def prepare_headers(self):
@@ -91,7 +91,7 @@ class ApiCommand(object):
 
     def __init__(self, **kwargs):
         self.base_url = kwargs.get('base_url')
-        self.token = kwargs.get('token', None)
+        self.token = kwargs.get('token')
         self.verify = kwargs.get('verify', True)
 
     def prepare_headers(self):
@@ -491,7 +491,7 @@ class Client(object):
         self.__username = username
         self.__passw = password
         self.base_url = base_url
-        self.token = kwargs.get('token', None)
+        self.token = kwargs.get('token')
         self.verify = kwargs.get('verify', True)
 
     def __get_auth_url(self):
