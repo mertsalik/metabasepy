@@ -52,7 +52,18 @@ You can also query collection by its id:
 cli.collections.get(collection_id=1)
 ```
 
-### Query SQL Data from Card
+### Query Dataset ( Live Query )
+```python
+from metabasepy import Client, MetabaseTableParser
+
+cli = Client(username="XXX", password="****", base_url="https://your-remote-metabase-url.com")
+query_response = cli.dataset.post(database_id=1, query="select * from customers;")
+
+data_table = MetabaseTableParser.get_table(metabase_response=query_response)
+print(data_table.__dict__)
+```
+
+### Query Data from Card ( Pre-Saved Query )
 
 ```python
 from metabasepy import Client, MetabaseTableParser
@@ -96,3 +107,18 @@ Than you can loop through rows & columns
 for heading in data_table.columns:
     print(heading)
 ```
+
+### Export DataSet Result ( Download The Results of Live Query ) 
+
+
+```python
+from metabasepy import Client, MetabaseTableParser
+
+cli = Client(username="XXX", password="****", base_url="https://your-remote-metabase-url.com")
+cli.dataset.export(database_id=1, query="select * from customers;", export_format="xlsx")
+```
+Sample call:
+
+> In[8]: cli.dataset.export(database_id=2, query="select * from customers limit 10;", export\_format="csv")
+
+> Out[8]: '/Users/john\_doe/development/metabasepy/query_result_2020-10-30T10:55:30.663Z.csv'
