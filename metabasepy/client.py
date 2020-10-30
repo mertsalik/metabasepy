@@ -1,3 +1,5 @@
+import re
+
 import requests
 import json
 
@@ -5,6 +7,27 @@ try:
     from urllib import urlencode
 except ImportError:
     from urllib.parse import urlencode
+
+
+def get_file_export_path(file_name):
+    from os import getcwd
+    from os.path import join
+    return join(getcwd(), file_name)
+
+
+def parse_filename_from_response_header(response):
+    if type(response) != requests.Response:
+        raise ValueError("{} is not a valid Response object!")
+
+    content_disposition = response.headers.get('Content-Disposition')
+    if not content_disposition:
+        return None
+
+    filenames = re.findall('filename=(.+)', content_disposition)
+    if not filenames:
+        return None
+    selected_filename = filenames[0]
+    return selected_filename.strip('"').strip("'")
 
 
 class AuthorizationFailedException(Exception):
@@ -19,7 +42,7 @@ class RequestException(Exception):
 class Resource(object):
     def __init__(self, **kwargs):
         self.base_url = kwargs.get('base_url')
-        self.token = kwargs.get('token', None)
+        self.token = kwargs.get('token')
         self.verify = kwargs.get('verify', True)
 
     def prepare_headers(self):
@@ -59,6 +82,35 @@ class Resource(object):
         raise NotImplementedError()
 
     def delete(self, **kwargs):
+        raise NotImplementedError()
+
+
+class ApiCommand(object):
+    """ This is a general interface to implement a wrapper of endpoints which
+    only allows POST methods and not a resource representation. """
+
+    def __init__(self, **kwargs):
+        self.base_url = kwargs.get('base_url')
+        self.token = kwargs.get('token')
+        self.verify = kwargs.get('verify', True)
+
+    def prepare_headers(self):
+        return {
+            'X-Metabase-Session': self.token,
+            'Content-Type': 'application/json'
+        }
+
+    def post(self, **kwargs):
+        raise NotImplementedError()
+
+    @staticmethod
+    def validate_response(response):
+        status_code = response.status_code
+        if status_code not in [200, 201, 202]:
+            raise RequestException(message=response.content)
+
+    @property
+    def endpoint(self):
         raise NotImplementedError()
 
 
@@ -208,7 +260,8 @@ class CollectionResource(Resource):
             url = "{}/{}".format(self.endpoint, collection_id)
         elif archived:
             url = "{}?archived=true"
-        resp = requests.get(url=url, headers=self.prepare_headers(), verify=self.verify)
+        resp = requests.get(url=url, headers=self.prepare_headers(),
+                            verify=self.verify)
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -335,12 +388,110 @@ class UtilityResource(Resource):
         return resp.json()
 
 
+class DatasetCommand(ApiCommand):
+
+    @staticmethod
+    def validate_export_format(export_format_value):
+        allowed_export_formats = ['api', 'csv', 'json', 'xlsx']
+        if export_format_value not in allowed_export_formats:
+            raise ValueError('{} not supported!'.format(export_format_value))
+
+    @property
+    def endpoint(self):
+        return "{}/api/dataset".format(self.base_url)
+
+    def post(self, database_id, query):
+        """ Execute a query and retrieve the results in the usual format."""
+        request_data = {
+            "type": "native",
+            "native": {
+                "query": query,
+                "template-tags": {}
+            },
+            "database": database_id,
+            "parameters": []
+        }
+        resp = requests.post(url=self.endpoint, json=request_data,
+                             headers=self.prepare_headers(),
+                             verify=self.verify)
+        Resource.validate_response(response=resp)
+        json_response = resp.json()
+        return json_response
+
+    def export(self, database_id, query, export_format, full_path=None):
+        """ redirects dataset query to available export endpoint,
+         saves it in folder given with to_file_path parameter
+         or current working directory by default."""
+
+        query_request_data = {
+            "type": "native",
+            "native": {
+                "query": query,
+                "template-tags": {}
+            },
+            "database": database_id,
+            "parameters": [],
+        }
+        request_data = {
+            "query": json.dumps(query_request_data)
+        }
+
+        headers = self.prepare_headers()
+        headers.update({'Content-Type': 'application/x-www-form-urlencoded'})
+
+        DatasetCommand.validate_export_format(
+            export_format_value=export_format)
+        command_url = "{command_endpoint}/{export_param}".format(
+            command_endpoint=self.endpoint,
+            export_param=export_format
+        )
+        resp = requests.post(url=command_url, data=request_data,
+                             headers=headers,
+                             verify=self.verify)
+
+        if not full_path:
+            file_name = parse_filename_from_response_header(response=resp) \
+                        or "metabase_dataset_export.{extension}".format(
+                extension=export_format)
+            export_file_path = get_file_export_path(file_name=file_name)
+        else:
+            export_file_path = full_path
+
+        file_access_mode = "w"
+        if type(resp.content) == bytes:
+            file_access_mode = "wb"
+
+        with open(file=export_file_path, mode=file_access_mode) as f:
+            f.write(resp.content)
+
+        return export_file_path
+
+    def duration(self, database_id, query):
+        """ Get historical query execution duration. """
+        request_data = {
+            "type": "native",
+            "native": {
+                "query": query,
+                "template-tags": {}
+            },
+            "database": database_id,
+            "parameters": []
+        }
+        command_url = "{}/duration".format(self.endpoint)
+        resp = requests.post(url=command_url, json=request_data,
+                             headers=self.prepare_headers(),
+                             verify=self.verify)
+        Resource.validate_response(response=resp)
+        json_response = resp.json()
+        return json_response
+
+
 class Client(object):
     def __init__(self, username, password, base_url, **kwargs):
         self.__username = username
         self.__passw = password
         self.base_url = base_url
-        self.token = kwargs.get('token', None)
+        self.token = kwargs.get('token')
         self.verify = kwargs.get('verify', True)
 
     def __get_auth_url(self):
@@ -365,20 +516,36 @@ class Client(object):
 
     @property
     def databases(self):
-        return DatabaseResource(base_url=self.base_url, token=self.token, verify=self.verify)
+        return DatabaseResource(base_url=self.base_url,
+                                token=self.token,
+                                verify=self.verify)
 
     @property
     def cards(self):
-        return CardResource(base_url=self.base_url, token=self.token, verify=self.verify)
+        return CardResource(base_url=self.base_url,
+                            token=self.token,
+                            verify=self.verify)
 
     @property
     def collections(self):
-        return CollectionResource(base_url=self.base_url, token=self.token, verify=self.verify)
+        return CollectionResource(base_url=self.base_url,
+                                  token=self.token,
+                                  verify=self.verify)
 
     @property
     def users(self):
-        return UserResource(base_url=self.base_url, token=self.token, verify=self.verify)
+        return UserResource(base_url=self.base_url,
+                            token=self.token,
+                            verify=self.verify)
 
     @property
     def utils(self):
-        return UtilityResource(base_url=self.base_url, token=self.token, verify=self.verify)
+        return UtilityResource(base_url=self.base_url,
+                               token=self.token,
+                               verify=self.verify)
+
+    @property
+    def dataset(self):
+        return DatasetCommand(base_url=self.base_url,
+                              token=self.token,
+                              verify=self.verify)
