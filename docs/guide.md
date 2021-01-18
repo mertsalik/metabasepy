@@ -75,7 +75,7 @@ data_table = MetabaseTableParser.get_table(metabase_response=query_response)
 print(data_table.__dict__)
 ```
 
-Now you have table of query results
+Now you have table of query results (note that it will only list the first 2000 rows):
 
     {
         'status': 'completed',
@@ -122,3 +122,16 @@ Sample call:
 > In[8]: cli.dataset.export(database_id=2, query="select * from customers limit 10;", export\_format="csv")
 
 > Out[8]: '/Users/john\_doe/development/metabasepy/query_result_2020-10-30T10:55:30.663Z.csv'
+
+
+### Export Card ( Pre-Saved Query ) to Pandas
+
+```python
+from metabasepy import Client, MetabaseTableParser
+import pandas as pd
+
+cli = Client(username="XXX", password="****", base_url="https://your-remote-metabase-url.com")
+json_result = cli.cards.download(card_id='123', format='json')
+
+df = pd.DataFrame(json_result)
+df.head()
