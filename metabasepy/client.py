@@ -44,6 +44,7 @@ class Resource(object):
         self.base_url = kwargs.get('base_url')
         self.token = kwargs.get('token')
         self.verify = kwargs.get('verify', True)
+        self.proxies = kwargs.get('proxies')
 
     def prepare_headers(self):
         return {
@@ -92,7 +93,8 @@ class ApiCommand(object):
     def __init__(self, **kwargs):
         self.base_url = kwargs.get('base_url')
         self.token = kwargs.get('token')
-        self.verify = kwargs.get('verify', True)
+        self.verify = kwargs.get('verify', True),
+        self.proxies = kwargs.get('proxies')
 
     def prepare_headers(self):
         return {
@@ -124,8 +126,12 @@ class DatabaseResource(Resource):
         url = self.endpoint
         if database_id:
             url = "{}/{}".format(url, database_id)
-        resp = requests.get(url=self.endpoint, headers=self.prepare_headers(),
-                            verify=self.verify)
+        resp = requests.get(
+            url=self.endpoint,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -135,9 +141,12 @@ class DatabaseResource(Resource):
 
     def delete(self, database_id):
         url = "{}/{}".format(self.endpoint, database_id)
-        resp = requests.delete(url=url,
-                               headers=self.prepare_headers(),
-                               verify=self.verify)
+        resp = requests.delete(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(resp)
 
     def post(self, name, engine, host, port, dbname, user, password, ssl=False,
@@ -155,9 +164,13 @@ class DatabaseResource(Resource):
                 "tunnel_port": tunnel_port
             }
         }
-        resp = requests.post(url=self.endpoint, json=request_data,
-                             headers=self.prepare_headers(),
-                             verify=self.verify)
+        resp = requests.post(
+            url=self.endpoint,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         json_response = resp.json()
         return json_response['id']
@@ -173,8 +186,12 @@ class CardResource(Resource):
         url = self.endpoint
         if card_id:
             url = "{}/{}".format(self.endpoint, card_id)
-        resp = requests.get(url=url, headers=self.prepare_headers(),
-                            verify=self.verify)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -184,8 +201,12 @@ class CardResource(Resource):
         :return:
         """
         url = "{}?f=all&collection={}".format(self.endpoint, collection_slug)
-        resp = requests.get(url=url, headers=self.prepare_headers(),
-                            verify=self.verify)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -206,31 +227,46 @@ class CardResource(Resource):
             "description": kwargs.get('description', None),
             "collection_id": kwargs.get('collection_id', None)
         }
-        resp = requests.post(url=self.endpoint, json=request_data,
-                             headers=self.prepare_headers(),
-                             verify=self.verify)
+        resp = requests.post(
+            url=self.endpoint,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         json_response = resp.json()
         return json_response['id']
 
     def put(self, card_id, **kwargs):
         url = "{}/{}".format(self.endpoint, card_id)
-        resp = requests.put(url=url, json=kwargs,
-                            headers=self.prepare_headers())
+        resp = requests.put(
+            url=url,
+            json=kwargs,
+            headers=self.prepare_headers(),
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
 
     def delete(self, card_id):
         url = "{}/{}".format(self.endpoint, card_id)
-        resp = requests.delete(url=url,
-                               headers=self.prepare_headers(),
-                               verify=self.verify)
+        resp = requests.delete(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
 
     def query(self, card_id, parameters=None):
         # TODO : add parameters usage
         url = "{}/{}/query".format(self.endpoint, card_id)
-        resp = requests.post(url=url, headers=self.prepare_headers(),
-                             verify=self.verify)
+        resp = requests.post(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -242,8 +278,12 @@ class CardResource(Resource):
         if parameters:
             parameters = urlencode({k: json.dumps(v)
                                     for k, v in parameters.items()})
-        resp = requests.post(url=url, headers=self.prepare_headers(),
-                             params=parameters, verify=self.verify)
+        resp = requests.post(
+            url=url,
+            headers=self.prepare_headers(),
+            params=parameters, verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -260,8 +300,12 @@ class CollectionResource(Resource):
             url = "{}/{}".format(self.endpoint, collection_id)
         elif archived:
             url = "{}?archived=true"
-        resp = requests.get(url=url, headers=self.prepare_headers(),
-                            verify=self.verify)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -271,17 +315,24 @@ class CollectionResource(Resource):
             "description": kwargs.get('description'),
             "color": color
         }
-        resp = requests.post(url=self.endpoint, json=request_data,
-                             headers=self.prepare_headers(),
-                             verify=self.verify)
+        resp = requests.post(
+            url=self.endpoint,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
     def delete(self, collection_id):
         url = "{}/{}".format(self.endpoint, collection_id)
-        resp = requests.delete(url=url,
-                               headers=self.prepare_headers(),
-                               verify=self.verify)
+        resp = requests.delete(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
 
 
@@ -296,15 +347,23 @@ class UserResource(Resource):
         if user_id:
             url = "{}/{}".format(self.endpoint, user_id)
 
-        resp = requests.get(url=url, headers=self.prepare_headers(),
-                            verify=self.verify)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
     def current(self):
         url = "{}/current".format(self.endpoint)
-        resp = requests.get(url=url, headers=self.prepare_headers(),
-                            verify=self.verify)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -315,24 +374,35 @@ class UserResource(Resource):
             "email": email,
             "password": password
         }
-        resp = requests.post(url=self.endpoint, json=request_data,
-                             headers=self.prepare_headers(),
-                             verify=self.verify)
+        resp = requests.post(
+            url=self.endpoint,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         json_response = resp.json()
         return json_response['id']
 
     def delete(self, user_id):
         url = "{}/{}".format(self.endpoint, user_id)
-        resp = requests.delete(url=url,
-                               headers=self.prepare_headers(),
-                               verify=self.verify)
+        resp = requests.delete(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
 
     def send_invite(self, user_id):
         url = "{}/{}/send_invite".format(self.endpoint, user_id)
-        resp = requests.post(url=url, headers=self.prepare_headers(),
-                             verify=self.verify)
+        resp = requests.post(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -342,9 +412,13 @@ class UserResource(Resource):
             "password": password,
             "old_password": old_password
         }
-        resp = requests.put(url=url, json=request_data,
-                            headers=self.prepare_headers(),
-                            verify=self.verify)
+        resp = requests.put(
+            url=url,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -357,22 +431,34 @@ class UtilityResource(Resource):
 
     def logs(self):
         url = "{}/logs".format(self.endpoint)
-        resp = requests.get(url=url, headers=self.prepare_headers(),
-                            verify=self.verify)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
     def random_token(self):
         url = "{}/random_token".format(self.endpoint)
-        resp = requests.get(url=url, headers=self.prepare_headers(),
-                            verify=self.verify)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
     def stats(self):
         url = "{}/stats".format(self.endpoint)
-        resp = requests.get(url=url, headers=self.prepare_headers(),
-                            verify=self.verify)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -381,9 +467,13 @@ class UtilityResource(Resource):
         request_data = {
             "password": password,
         }
-        resp = requests.post(url=url, json=request_data,
-                             headers=self.prepare_headers(),
-                             verify=self.verify)
+        resp = requests.post(
+            url=url,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         return resp.json()
 
@@ -411,9 +501,13 @@ class DatasetCommand(ApiCommand):
             "database": database_id,
             "parameters": []
         }
-        resp = requests.post(url=self.endpoint, json=request_data,
-                             headers=self.prepare_headers(),
-                             verify=self.verify)
+        resp = requests.post(
+            url=self.endpoint,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         json_response = resp.json()
         return json_response
@@ -445,9 +539,13 @@ class DatasetCommand(ApiCommand):
             command_endpoint=self.endpoint,
             export_param=export_format
         )
-        resp = requests.post(url=command_url, data=request_data,
-                             headers=headers,
-                             verify=self.verify)
+        resp = requests.post(
+            url=command_url,
+            data=request_data,
+            headers=headers,
+            verify=self.verify,
+            proxies=self.proxies
+        )
 
         if not full_path:
             file_name = parse_filename_from_response_header(response=resp) \
@@ -478,9 +576,13 @@ class DatasetCommand(ApiCommand):
             "parameters": []
         }
         command_url = "{}/duration".format(self.endpoint)
-        resp = requests.post(url=command_url, json=request_data,
-                             headers=self.prepare_headers(),
-                             verify=self.verify)
+        resp = requests.post(
+            url=command_url,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
         Resource.validate_response(response=resp)
         json_response = resp.json()
         return json_response
@@ -493,6 +595,7 @@ class Client(object):
         self.base_url = base_url
         self.token = kwargs.get('token')
         self.verify = kwargs.get('verify', True)
+        self.proxies = kwargs.get('proxies')
 
     def __get_auth_url(self):
         return "{}/api/session".format(self.base_url)
@@ -505,8 +608,13 @@ class Client(object):
         request_headers = {
             'Content-Type': 'application/json'
         }
-        resp = requests.post(url=self.__get_auth_url(), json=request_data,
-                             headers=request_headers, verify=self.verify)
+        resp = requests.post(
+            url=self.__get_auth_url(),
+            json=request_data,
+            headers=request_headers,
+            verify=self.verify,
+            proxies=self.proxies
+        )
 
         json_response = resp.json()
         if "id" not in json_response:
