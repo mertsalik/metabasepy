@@ -65,20 +65,8 @@ class Resource(object):
 
     @staticmethod
     def validate_response(response):
-        request_method = response.request.method
-        status_code = response.status_code
-        if request_method == "GET":
-            if status_code != 200:
-                raise RequestException(response)
-        elif request_method == "POST":
-            if status_code not in [200, 201, 202]:
-                raise RequestException(response)
-        elif request_method == "PUT":
-            if status_code != 204:
-                raise RequestException(response)
-        elif request_method == "DELETE":
-            if status_code != 204:
-                raise RequestException(response)
+        if not response.ok:
+            raise RequestException(response)
 
     @property
     def endpoint(self):
