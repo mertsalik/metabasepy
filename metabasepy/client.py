@@ -63,7 +63,7 @@ class Resource(object):
             if status_code not in [200, 201, 202]:
                 raise RequestException(message=response.content)
         elif request_method == "PUT":
-            if status_code != 204:
+            if status_code not in [202, 204]:
                 raise RequestException(message=response.content)
         elif request_method == "DELETE":
             if status_code != 204:
