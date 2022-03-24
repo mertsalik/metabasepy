@@ -477,6 +477,17 @@ class UtilityResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
+    def connection_pool_info(self):
+        url = "{}/diagnostic_info/connection_pool_info".format(self.endpoint)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
+        return resp.json()
+
 
 class DatasetCommand(ApiCommand):
 
