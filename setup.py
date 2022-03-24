@@ -15,7 +15,7 @@ install_requires = ['requests >= 1.5.5', 'slugify']
 
 setup(
     name='metabasepy',
-    version='1.10.0',
+    version='1.11.0-dev0',
     use_scm_version=True,
     setup_requires=['setuptools_scm', 'future'],
     description='Python wrapper for Metabase REST API',
