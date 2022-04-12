@@ -93,7 +93,7 @@ class ApiCommand(object):
     def __init__(self, **kwargs):
         self.base_url = kwargs.get('base_url')
         self.token = kwargs.get('token')
-        self.verify = kwargs.get('verify', True),
+        self.verify = kwargs.get('verify', True)
         self.proxies = kwargs.get('proxies')
 
     def prepare_headers(self):
