@@ -35,8 +35,19 @@ class AuthorizationFailedException(Exception):
 
 
 class RequestException(Exception):
-    def __init__(self, message=None):
-        self.message = message
+    def __init__(self, response):
+        if 400 <= response.status_code < 500:
+            http_error_msg = \
+                u'%s Client Error: %s for url: %s' % (response.status_code,
+                                                      response.reason,
+                                                      response.url)
+        elif 500 <= response.status_code < 600:
+            http_error_msg = \
+                u'%s Server Error: %s for url: %s' % (response.status_code,
+                                                      response.reason,
+                                                      response.url)
+        super().__init__(http_error_msg)
+        self.content = response.content
 
 
 class Resource(object):
@@ -54,20 +65,8 @@ class Resource(object):
 
     @staticmethod
     def validate_response(response):
-        request_method = response.request.method
-        status_code = response.status_code
-        if request_method == "GET":
-            if status_code != 200:
-                raise RequestException(message=response.content)
-        elif request_method == "POST":
-            if status_code not in [200, 201, 202]:
-                raise RequestException(message=response.content)
-        elif request_method == "PUT":
-            if status_code != 204:
-                raise RequestException(message=response.content)
-        elif request_method == "DELETE":
-            if status_code != 204:
-                raise RequestException(message=response.content)
+        if not response.ok:
+            raise RequestException(response)
 
     @property
     def endpoint(self):
@@ -109,7 +108,7 @@ class ApiCommand(object):
     def validate_response(response):
         status_code = response.status_code
         if status_code not in [200, 201, 202]:
-            raise RequestException(message=response.content)
+            raise RequestException(response)
 
     @property
     def endpoint(self):

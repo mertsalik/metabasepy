@@ -88,7 +88,7 @@ def create_collection(collection_data, destination_client):
             **collection_data)
         collection_id = collection_response.get('id')
     except RequestException as rex:
-        if "already exists" in rex.message:
+        if "already exists" in rex.content:
             dest_collections = destination_client.collections.get()
             for collection in dest_collections:
                 if collection["name"] == collection_data["name"]:
