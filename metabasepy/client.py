@@ -668,3 +668,64 @@ class Client(object):
         return DatasetCommand(base_url=self.base_url,
                               token=self.token,
                               verify=self.verify)
+
+
+class Setup(object):
+    def __init__(self, base_url, **kwargs):
+        self.base_url = base_url
+        self.verify = kwargs.get('verify', True)
+        self.proxies = kwargs.get('proxies')
+        self.token = kwargs.get('token')
+
+    def __get_properties_url(self):
+        return "{}/api/session/properties".format(self.base_url)
+
+    def __get_setup_url(self):
+        return "{}/api/setup".format(self.base_url)
+
+    def setup(
+        self,
+        email,
+        password,
+        sitename,
+        database=None,
+        ):
+        request_headers = {
+            'Content-Type': 'application/json'
+        }
+
+        setup_token = requests.get(
+            url=self.__get_properties_url(),
+            headers=request_headers,
+            verify=self.verify,
+            proxies=self.proxies
+        ).json()["setup-token"]
+
+        request_data = {
+            "token": setup_token,
+            "user": {
+                "email": email,
+                "password": password,
+                "password_confirm": password
+            },
+            "database": database,
+            "prefs": {
+                "site_name": sitename,
+                "site_locale": "en",
+                "allow_tracking": "false"
+            }
+        }
+
+        resp = requests.post(
+            url=self.__get_setup_url(),
+            json=request_data,
+            headers=request_headers,
+            verify=self.verify,
+            proxies=self.proxies
+        )
+
+        json_response = resp.json()
+        if "id" not in json_response:
+            raise AuthorizationFailedException()
+
+        self.token = json_response['id']
