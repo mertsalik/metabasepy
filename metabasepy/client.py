@@ -133,7 +133,7 @@ class DatabaseResource(Resource):
             proxies=self.proxies
         )
         Resource.validate_response(response=resp)
-        return resp.json()
+        return resp.json()['data']
 
     def get_by_name(self, name):
         all_dbs = self.get()
@@ -195,35 +195,13 @@ class CardResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
-    def get_by_collection(self, collection_slug):
-        """
-        :param collection_slug:
-        :return:
-        """
-        url = "{}?f=all&collection={}".format(self.endpoint, collection_slug)
-        resp = requests.get(
-            url=url,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies
-        )
-        Resource.validate_response(response=resp)
-        return resp.json()
 
-    def post(self, database_id, name, query, **kwargs):
+    def post(self, name, **kwargs):
         request_data = {
             "name": name,
             "display": kwargs.get('display', 'scalar'),
             "visualization_settings": kwargs.get('visualization_settings', {}),
-            "dataset_query": {
-                "database": database_id,
-                "type": "native",
-                "native": {
-                    "query": query,
-                    "collection": kwargs.get('collection', None),
-                    "template_tags": kwargs.get('template_tags', {})
-                }
-            },
+            "dataset_query": kwargs.get('dataset_query', None),
             "description": kwargs.get('description', None),
             "collection_id": kwargs.get('collection_id', None)
         }
