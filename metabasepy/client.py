@@ -287,6 +287,20 @@ class CollectionResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
+    def items(self, collection_id, archived=False):
+        url = "{}/{}/items".format(self.endpoint, collection_id)
+        if archived:
+            url = "{}?archived=true"
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+
     def post(self, name, color="#000000", **kwargs):
         request_data = {
             "name": name,
