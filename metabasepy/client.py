@@ -334,7 +334,7 @@ class DashboardResource(Resource):
         Resource.validate_response(response=resp)
         json_response = resp.json()
         return json_response['id']
-        
+
     def put(self, card_id, **kwargs):
         url = "{}/{}".format(self.endpoint, card_id)
         resp = requests.put(
@@ -721,6 +721,56 @@ class Client(object):
     def __get_auth_url(self):
         return "{}/api/session".format(self.base_url)
 
+    def __get_properties_url(self):
+        return "{}/api/session/properties".format(self.base_url)
+
+    def __get_setup_url(self):
+        return "{}/api/setup".format(self.base_url)
+
+    def setup(
+        self,
+        database=None,
+        ):
+        request_headers = {
+            'Content-Type': 'application/json'
+        }
+
+        setup_token = requests.get(
+            url=self.__get_properties_url(),
+            headers=request_headers,
+            verify=self.verify,
+            proxies=self.proxies
+        ).json()["setup-token"]
+
+        request_data = {
+            "token": setup_token,
+            "user": {
+                "email": self.__username,
+                "password": self.__passw,
+                "password_confirm": self.__passw
+            },
+            "database": database,
+            "prefs": {
+                "site_name": self.base_url,
+                "site_locale": "en",
+                "allow_tracking": "false"
+            }
+        }
+
+        resp = requests.post(
+            url=self.__get_setup_url(),
+            json=request_data,
+            headers=request_headers,
+            verify=self.verify,
+            proxies=self.proxies
+        )
+
+        json_response = resp.json()
+        if "id" not in json_response:
+            raise AuthorizationFailedException()
+
+        self.token = json_response['id']
+
     def authenticate(self):
         request_data = {
             "username": self.__username,
@@ -784,63 +834,3 @@ class Client(object):
                               token=self.token,
                               verify=self.verify)
 
-
-class Setup(object):
-    def __init__(self, base_url, **kwargs):
-        self.base_url = base_url
-        self.verify = kwargs.get('verify', True)
-        self.proxies = kwargs.get('proxies')
-        self.token = kwargs.get('token')
-
-    def __get_properties_url(self):
-        return "{}/api/session/properties".format(self.base_url)
-
-    def __get_setup_url(self):
-        return "{}/api/setup".format(self.base_url)
-
-    def setup(
-        self,
-        email,
-        password,
-        sitename,
-        database=None,
-        ):
-        request_headers = {
-            'Content-Type': 'application/json'
-        }
-
-        setup_token = requests.get(
-            url=self.__get_properties_url(),
-            headers=request_headers,
-            verify=self.verify,
-            proxies=self.proxies
-        ).json()["setup-token"]
-
-        request_data = {
-            "token": setup_token,
-            "user": {
-                "email": email,
-                "password": password,
-                "password_confirm": password
-            },
-            "database": database,
-            "prefs": {
-                "site_name": sitename,
-                "site_locale": "en",
-                "allow_tracking": "false"
-            }
-        }
-
-        resp = requests.post(
-            url=self.__get_setup_url(),
-            json=request_data,
-            headers=request_headers,
-            verify=self.verify,
-            proxies=self.proxies
-        )
-
-        json_response = resp.json()
-        if "id" not in json_response:
-            raise AuthorizationFailedException()
-
-        self.token = json_response['id']
