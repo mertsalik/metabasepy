@@ -14,6 +14,7 @@ except ImportError:
 def get_file_export_path(file_name):
     from os import getcwd
     from os.path import join
+
     return join(getcwd(), file_name)
 
 
@@ -21,11 +22,11 @@ def parse_filename_from_response_header(response):
     if type(response) != requests.Response:
         raise ValueError("{} is not a valid Response object!")
 
-    content_disposition = response.headers.get('Content-Disposition')
+    content_disposition = response.headers.get("Content-Disposition")
     if not content_disposition:
         return None
 
-    filenames = re.findall('filename=(.+)', content_disposition)
+    filenames = re.findall("filename=(.+)", content_disposition)
     if not filenames:
         return None
     selected_filename = filenames[0]
@@ -43,16 +44,13 @@ class RequestException(Exception):
 
 class Resource(object):
     def __init__(self, **kwargs):
-        self.base_url = kwargs.get('base_url')
-        self.token = kwargs.get('token')
-        self.verify = kwargs.get('verify', True)
-        self.proxies = kwargs.get('proxies')
+        self.base_url = kwargs.get("base_url")
+        self.token = kwargs.get("token")
+        self.verify = kwargs.get("verify", True)
+        self.proxies = kwargs.get("proxies")
 
     def prepare_headers(self):
-        return {
-            'X-Metabase-Session': self.token,
-            'Content-Type': 'application/json'
-        }
+        return {"X-Metabase-Session": self.token, "Content-Type": "application/json"}
 
     @staticmethod
     def validate_response(response):
@@ -89,20 +87,17 @@ class Resource(object):
 
 
 class ApiCommand(object):
-    """ This is a general interface to implement a wrapper of endpoints which
-    only allows POST methods and not a resource representation. """
+    """This is a general interface to implement a wrapper of endpoints which
+    only allows POST methods and not a resource representation."""
 
     def __init__(self, **kwargs):
-        self.base_url = kwargs.get('base_url')
-        self.token = kwargs.get('token')
-        self.verify = kwargs.get('verify', True)
-        self.proxies = kwargs.get('proxies')
+        self.base_url = kwargs.get("base_url")
+        self.token = kwargs.get("token")
+        self.verify = kwargs.get("verify", True)
+        self.proxies = kwargs.get("proxies")
 
     def prepare_headers(self):
-        return {
-            'X-Metabase-Session': self.token,
-            'Content-Type': 'application/json'
-        }
+        return {"X-Metabase-Session": self.token, "Content-Type": "application/json"}
 
     def post(self, **kwargs):
         raise NotImplementedError()
@@ -119,7 +114,6 @@ class ApiCommand(object):
 
 
 class DatabaseResource(Resource):
-
     @property
     def endpoint(self):
         return "{}/api/database".format(self.base_url)
@@ -132,14 +126,14 @@ class DatabaseResource(Resource):
             url=self.endpoint,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
-        return resp.json()['data']
+        return resp.json()["data"]
 
     def get_by_name(self, name):
         all_dbs = self.get()
-        return [db for db in all_dbs if db['name'] == name]
+        return [db for db in all_dbs if db["name"] == name]
 
     def delete(self, database_id):
         url = "{}/{}".format(self.endpoint, database_id)
@@ -147,12 +141,22 @@ class DatabaseResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(resp)
 
-    def post(self, name, engine, host, port, dbname, user, password, ssl=False,
-             tunnel_port=22):
+    def post(
+        self,
+        name,
+        engine,
+        host,
+        port,
+        dbname,
+        user,
+        password,
+        ssl=False,
+        tunnel_port=22,
+    ):
         request_data = {
             "name": name,
             "engine": engine,
@@ -163,23 +167,22 @@ class DatabaseResource(Resource):
                 "user": user,
                 "password": password,
                 "ssl": ssl,
-                "tunnel_port": tunnel_port
-            }
+                "tunnel_port": tunnel_port,
+            },
         }
         resp = requests.post(
             url=self.endpoint,
             json=request_data,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         json_response = resp.json()
-        return json_response['id']
+        return json_response["id"]
 
 
 class CardResource(Resource):
-
     @property
     def endpoint(self):
         return "{}/api/card".format(self.base_url)
@@ -192,28 +195,27 @@ class CardResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
-
 
     def post(self, name, json=None, **kwargs):
         if not json:
             json = {
                 "name": name,
-                "display": kwargs.get('display', 'scalar'),
-                "visualization_settings": kwargs.get('visualization_settings', {}),
-                "dataset_query": kwargs.get('dataset_query', None),
-                "description": kwargs.get('description', None),
-                "collection_id": kwargs.get('collection_id', None)
+                "display": kwargs.get("display", "scalar"),
+                "visualization_settings": kwargs.get("visualization_settings", {}),
+                "dataset_query": kwargs.get("dataset_query", None),
+                "description": kwargs.get("description", None),
+                "collection_id": kwargs.get("collection_id", None),
             }
         resp = requests.post(
             url=self.endpoint,
             json=json,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         json_response = resp.json()
@@ -222,10 +224,7 @@ class CardResource(Resource):
     def put(self, card_id, **kwargs):
         url = "{}/{}".format(self.endpoint, card_id)
         resp = requests.put(
-            url=url,
-            json=kwargs,
-            headers=self.prepare_headers(),
-            proxies=self.proxies
+            url=url, json=kwargs, headers=self.prepare_headers(), proxies=self.proxies
         )
         Resource.validate_response(response=resp)
 
@@ -235,7 +234,7 @@ class CardResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
 
@@ -246,31 +245,30 @@ class CardResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
 
     def download(self, card_id, format, parameters=None):
         url = "{}/{}/query".format(self.endpoint, card_id)
-        if format not in ['csv', 'json', 'xlsx']:
-            raise ValueError('{} format not supported.'.format(format))
+        if format not in ["csv", "json", "xlsx"]:
+            raise ValueError("{} format not supported.".format(format))
         url = "{}/{}".format(url, format)
         if parameters:
-            parameters = urlencode({k: json.dumps(v)
-                                    for k, v in parameters.items()})
+            parameters = urlencode({k: json.dumps(v) for k, v in parameters.items()})
         resp = requests.post(
             url=url,
             headers=self.prepare_headers(),
-            params=parameters, verify=self.verify,
-            proxies=self.proxies
+            params=parameters,
+            verify=self.verify,
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
 
 
 class DashboardResource(Resource):
-
     @property
     def endpoint(self):
         return "{}/api/dashboard".format(self.base_url)
@@ -283,11 +281,11 @@ class DashboardResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
-    
+
     def related(self, dashboard_id):
 
         url = "{}/{}/related".format(self.endpoint, dashboard_id)
@@ -295,7 +293,7 @@ class DashboardResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
@@ -303,45 +301,40 @@ class DashboardResource(Resource):
     def post(self, name, **kwargs):
         request_data = {
             "name": name,
-            "collection_position": kwargs.get('collection_position'),
-            "ordered_cards": kwargs.get('ordered_cards', []),
-            "description": kwargs.get('description', None),
-            "collection_id": kwargs.get('collection_id', None)
+            "collection_position": kwargs.get("collection_position"),
+            "ordered_cards": kwargs.get("ordered_cards", []),
+            "description": kwargs.get("description", None),
+            "collection_id": kwargs.get("collection_id", None),
         }
         resp = requests.post(
             url=self.endpoint,
             json=request_data,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         json_response = resp.json()
-        return json_response['id']
+        return json_response["id"]
 
     def post_cards(self, dashboard_id, card_id, **kwargs):
         url = "{}/{}/cards".format(self.endpoint, dashboard_id)
-        request_data = {
-            "cardId": card_id
-        }
+        request_data = {"cardId": card_id}
         resp = requests.post(
             url=url,
             json=request_data,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         json_response = resp.json()
-        return json_response['id']
+        return json_response["id"]
 
     def put(self, card_id, **kwargs):
         url = "{}/{}".format(self.endpoint, card_id)
         resp = requests.put(
-            url=url,
-            json=kwargs,
-            headers=self.prepare_headers(),
-            proxies=self.proxies
+            url=url, json=kwargs, headers=self.prepare_headers(), proxies=self.proxies
         )
         Resource.validate_response(response=resp)
 
@@ -351,7 +344,7 @@ class DashboardResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
 
@@ -362,30 +355,30 @@ class DashboardResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
 
     def download(self, card_id, format, parameters=None):
         url = "{}/{}/query".format(self.endpoint, card_id)
-        if format not in ['csv', 'json', 'xlsx']:
-            raise ValueError('{} format not supported.'.format(format))
+        if format not in ["csv", "json", "xlsx"]:
+            raise ValueError("{} format not supported.".format(format))
         url = "{}/{}".format(url, format)
         if parameters:
-            parameters = urlencode({k: json.dumps(v)
-                                    for k, v in parameters.items()})
+            parameters = urlencode({k: json.dumps(v) for k, v in parameters.items()})
         resp = requests.post(
             url=url,
             headers=self.prepare_headers(),
-            params=parameters, verify=self.verify,
-            proxies=self.proxies
+            params=parameters,
+            verify=self.verify,
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
 
-class CollectionResource(Resource):
 
+class CollectionResource(Resource):
     @property
     def endpoint(self):
         return "{}/api/collection".format(self.base_url)
@@ -400,7 +393,7 @@ class CollectionResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
@@ -413,24 +406,23 @@ class CollectionResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()["data"]
 
-
     def post(self, name, color="#000000", **kwargs):
         request_data = {
             "name": name,
-            "description": kwargs.get('description'),
-            "color": color
+            "description": kwargs.get("description"),
+            "color": color,
         }
         resp = requests.post(
             url=self.endpoint,
             json=request_data,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
@@ -441,13 +433,12 @@ class CollectionResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
 
 
 class UserResource(Resource):
-
     @property
     def endpoint(self):
         return "{}/api/user".format(self.base_url)
@@ -461,7 +452,7 @@ class UserResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
@@ -472,7 +463,7 @@ class UserResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
@@ -482,18 +473,18 @@ class UserResource(Resource):
             "first_name": first_name,
             "last_name": last_name,
             "email": email,
-            "password": password
+            "password": password,
         }
         resp = requests.post(
             url=self.endpoint,
             json=request_data,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         json_response = resp.json()
-        return json_response['id']
+        return json_response["id"]
 
     def delete(self, user_id):
         url = "{}/{}".format(self.endpoint, user_id)
@@ -501,7 +492,7 @@ class UserResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
 
@@ -511,30 +502,26 @@ class UserResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
 
     def password(self, user_id, password, old_password):
         url = "{}/{}/password".format(self.endpoint, user_id)
-        request_data = {
-            "password": password,
-            "old_password": old_password
-        }
+        request_data = {"password": password, "old_password": old_password}
         resp = requests.put(
             url=url,
             json=request_data,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
 
 
 class UtilityResource(Resource):
-
     @property
     def endpoint(self):
         return "{}/api/util".format(self.base_url)
@@ -545,7 +532,7 @@ class UtilityResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
@@ -556,7 +543,7 @@ class UtilityResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
@@ -567,7 +554,7 @@ class UtilityResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
@@ -582,7 +569,7 @@ class UtilityResource(Resource):
             json=request_data,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
@@ -593,85 +580,74 @@ class UtilityResource(Resource):
             url=url,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         return resp.json()
 
 
 class DatasetCommand(ApiCommand):
-
     @staticmethod
     def validate_export_format(export_format_value):
-        allowed_export_formats = ['api', 'csv', 'json', 'xlsx']
+        allowed_export_formats = ["api", "csv", "json", "xlsx"]
         if export_format_value not in allowed_export_formats:
-            raise ValueError('{} not supported!'.format(export_format_value))
+            raise ValueError("{} not supported!".format(export_format_value))
 
     @property
     def endpoint(self):
         return "{}/api/dataset".format(self.base_url)
 
     def post(self, database_id, query):
-        """ Execute a query and retrieve the results in the usual format."""
+        """Execute a query and retrieve the results in the usual format."""
         request_data = {
             "type": "native",
-            "native": {
-                "query": query,
-                "template-tags": {}
-            },
+            "native": {"query": query, "template-tags": {}},
             "database": database_id,
-            "parameters": []
+            "parameters": [],
         }
         resp = requests.post(
             url=self.endpoint,
             json=request_data,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         json_response = resp.json()
         return json_response
 
     def export(self, database_id, query, export_format, full_path=None):
-        """ redirects dataset query to available export endpoint,
-         saves it in folder given with to_file_path parameter
-         or current working directory by default."""
+        """redirects dataset query to available export endpoint,
+        saves it in folder given with to_file_path parameter
+        or current working directory by default."""
 
         query_request_data = {
             "type": "native",
-            "native": {
-                "query": query,
-                "template-tags": {}
-            },
+            "native": {"query": query, "template-tags": {}},
             "database": database_id,
             "parameters": [],
         }
-        request_data = {
-            "query": json.dumps(query_request_data)
-        }
+        request_data = {"query": json.dumps(query_request_data)}
 
         headers = self.prepare_headers()
-        headers.update({'Content-Type': 'application/x-www-form-urlencoded'})
+        headers.update({"Content-Type": "application/x-www-form-urlencoded"})
 
-        DatasetCommand.validate_export_format(
-            export_format_value=export_format)
+        DatasetCommand.validate_export_format(export_format_value=export_format)
         command_url = "{command_endpoint}/{export_param}".format(
-            command_endpoint=self.endpoint,
-            export_param=export_format
+            command_endpoint=self.endpoint, export_param=export_format
         )
         resp = requests.post(
             url=command_url,
             data=request_data,
             headers=headers,
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
 
         if not full_path:
-            file_name = parse_filename_from_response_header(response=resp) \
-                        or "metabase_dataset_export.{extension}".format(
-                extension=export_format)
+            file_name = parse_filename_from_response_header(
+                response=resp
+            ) or "metabase_dataset_export.{extension}".format(extension=export_format)
             export_file_path = get_file_export_path(file_name=file_name)
         else:
             export_file_path = full_path
@@ -686,15 +662,12 @@ class DatasetCommand(ApiCommand):
         return export_file_path
 
     def duration(self, database_id, query):
-        """ Get historical query execution duration. """
+        """Get historical query execution duration."""
         request_data = {
             "type": "native",
-            "native": {
-                "query": query,
-                "template-tags": {}
-            },
+            "native": {"query": query, "template-tags": {}},
             "database": database_id,
-            "parameters": []
+            "parameters": [],
         }
         command_url = "{}/duration".format(self.endpoint)
         resp = requests.post(
@@ -702,7 +675,7 @@ class DatasetCommand(ApiCommand):
             json=request_data,
             headers=self.prepare_headers(),
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
         json_response = resp.json()
@@ -714,9 +687,9 @@ class Client(object):
         self.__username = username
         self.__passw = password
         self.base_url = base_url
-        self.token = kwargs.get('token')
-        self.verify = kwargs.get('verify', True)
-        self.proxies = kwargs.get('proxies')
+        self.token = kwargs.get("token")
+        self.verify = kwargs.get("verify", True)
+        self.proxies = kwargs.get("proxies")
 
     def __get_auth_url(self):
         return "{}/api/session".format(self.base_url)
@@ -729,32 +702,45 @@ class Client(object):
 
     def setup(
         self,
-        database=None,
-        ):
-        request_headers = {
-            'Content-Type': 'application/json'
-        }
+        project_id,
+        path_to_cred_file,
+        database="bigquery-cloud-sdk",
+    ):
+        request_headers = {"Content-Type": "application/json"}
 
         setup_token = requests.get(
             url=self.__get_properties_url(),
             headers=request_headers,
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         ).json()["setup-token"]
 
+        with open(path_to_cred_file, "r") as f:
+            service_account_json = f.read()
         request_data = {
             "token": setup_token,
             "user": {
                 "email": self.__username,
                 "password": self.__passw,
-                "password_confirm": self.__passw
+                "password_confirm": self.__passw,
             },
-            "database": database,
+            "database": {
+                "engine": database,
+                "name": f"Our {database}",
+                "details": {
+                    "project-id": project_id,
+                    "service-account-json": service_account_json,
+                    "dataset-filters-type": "all",
+                    "advanced-options": False,
+                    "ssl": True,
+                },
+                "is_full_sync": True,
+            },
             "prefs": {
                 "site_name": self.base_url,
                 "site_locale": "en",
-                "allow_tracking": "false"
-            }
+                "allow_tracking": "false",
+            },
         }
 
         resp = requests.post(
@@ -762,75 +748,70 @@ class Client(object):
             json=request_data,
             headers=request_headers,
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
 
         json_response = resp.json()
         if "id" not in json_response:
             raise AuthorizationFailedException()
 
-        self.token = json_response['id']
+        self.token = json_response["id"]
 
     def authenticate(self):
-        request_data = {
-            "username": self.__username,
-            "password": self.__passw
-        }
-        request_headers = {
-            'Content-Type': 'application/json'
-        }
+        request_data = {"username": self.__username, "password": self.__passw}
+        request_headers = {"Content-Type": "application/json"}
         resp = requests.post(
             url=self.__get_auth_url(),
             json=request_data,
             headers=request_headers,
             verify=self.verify,
-            proxies=self.proxies
+            proxies=self.proxies,
         )
 
         json_response = resp.json()
         if "id" not in json_response:
             raise AuthorizationFailedException()
 
-        self.token = json_response['id']
+        self.token = json_response["id"]
 
     @property
     def databases(self):
-        return DatabaseResource(base_url=self.base_url,
-                                token=self.token,
-                                verify=self.verify)
+        return DatabaseResource(
+            base_url=self.base_url, token=self.token, verify=self.verify
+        )
 
     @property
     def dashboards(self):
-        return DashboardResource(base_url=self.base_url,
-                                token=self.token,
-                                verify=self.verify)
+        return DashboardResource(
+            base_url=self.base_url, token=self.token, verify=self.verify
+        )
+
     @property
     def cards(self):
-        return CardResource(base_url=self.base_url,
-                            token=self.token,
-                            verify=self.verify)
+        return CardResource(
+            base_url=self.base_url, token=self.token, verify=self.verify
+        )
 
     @property
     def collections(self):
-        return CollectionResource(base_url=self.base_url,
-                                  token=self.token,
-                                  verify=self.verify)
+        return CollectionResource(
+            base_url=self.base_url, token=self.token, verify=self.verify
+        )
 
     @property
     def users(self):
-        return UserResource(base_url=self.base_url,
-                            token=self.token,
-                            verify=self.verify)
+        return UserResource(
+            base_url=self.base_url, token=self.token, verify=self.verify
+        )
 
     @property
     def utils(self):
-        return UtilityResource(base_url=self.base_url,
-                               token=self.token,
-                               verify=self.verify)
+        return UtilityResource(
+            base_url=self.base_url, token=self.token, verify=self.verify
+        )
 
     @property
     def dataset(self):
-        return DatasetCommand(base_url=self.base_url,
-                              token=self.token,
-                              verify=self.verify)
-
+        return DatasetCommand(
+            base_url=self.base_url, token=self.token, verify=self.verify
+        )
