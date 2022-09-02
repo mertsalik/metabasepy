@@ -1,4 +1,6 @@
+from email.mime import base
 import re
+from urllib import request
 
 import requests
 import json
@@ -196,25 +198,26 @@ class CardResource(Resource):
         return resp.json()
 
 
-    def post(self, name, **kwargs):
-        request_data = {
-            "name": name,
-            "display": kwargs.get('display', 'scalar'),
-            "visualization_settings": kwargs.get('visualization_settings', {}),
-            "dataset_query": kwargs.get('dataset_query', None),
-            "description": kwargs.get('description', None),
-            "collection_id": kwargs.get('collection_id', None)
-        }
+    def post(self, name, json=None, **kwargs):
+        if not json:
+            json = {
+                "name": name,
+                "display": kwargs.get('display', 'scalar'),
+                "visualization_settings": kwargs.get('visualization_settings', {}),
+                "dataset_query": kwargs.get('dataset_query', None),
+                "description": kwargs.get('description', None),
+                "collection_id": kwargs.get('collection_id', None)
+            }
         resp = requests.post(
             url=self.endpoint,
-            json=request_data,
+            json=json,
             headers=self.prepare_headers(),
             verify=self.verify,
             proxies=self.proxies
         )
         Resource.validate_response(response=resp)
         json_response = resp.json()
-        return json_response['id']
+        return json_response["id"]
 
     def put(self, card_id, **kwargs):
         url = "{}/{}".format(self.endpoint, card_id)
@@ -266,6 +269,121 @@ class CardResource(Resource):
         return resp.json()
 
 
+class DashboardResource(Resource):
+
+    @property
+    def endpoint(self):
+        return "{}/api/dashboard".format(self.base_url)
+
+    def get(self, dashboard_id=None):
+        url = self.endpoint
+        if dashboard_id:
+            url = "{}/{}".format(self.endpoint, dashboard_id)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
+        return resp.json()
+    
+    def related(self, dashboard_id):
+
+        url = "{}/{}/related".format(self.endpoint, dashboard_id)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def post(self, name, **kwargs):
+        request_data = {
+            "name": name,
+            "collection_position": kwargs.get('collection_position'),
+            "ordered_cards": kwargs.get('ordered_cards', []),
+            "description": kwargs.get('description', None),
+            "collection_id": kwargs.get('collection_id', None)
+        }
+        resp = requests.post(
+            url=self.endpoint,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
+        json_response = resp.json()
+        return json_response['id']
+
+    def post_cards(self, dashboard_id, card_id, **kwargs):
+        url = "{}/{}/cards".format(self.endpoint, dashboard_id)
+        request_data = {
+            "cardId": card_id
+        }
+        resp = requests.post(
+            url=url,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
+        json_response = resp.json()
+        return json_response['id']
+        
+    def put(self, card_id, **kwargs):
+        url = "{}/{}".format(self.endpoint, card_id)
+        resp = requests.put(
+            url=url,
+            json=kwargs,
+            headers=self.prepare_headers(),
+            proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
+
+    def delete(self, card_id):
+        url = "{}/{}".format(self.endpoint, card_id)
+        resp = requests.delete(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
+
+    def query(self, card_id, parameters=None):
+        # TODO : add parameters usage
+        url = "{}/{}/query".format(self.endpoint, card_id)
+        resp = requests.post(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def download(self, card_id, format, parameters=None):
+        url = "{}/{}/query".format(self.endpoint, card_id)
+        if format not in ['csv', 'json', 'xlsx']:
+            raise ValueError('{} format not supported.'.format(format))
+        url = "{}/{}".format(url, format)
+        if parameters:
+            parameters = urlencode({k: json.dumps(v)
+                                    for k, v in parameters.items()})
+        resp = requests.post(
+            url=url,
+            headers=self.prepare_headers(),
+            params=parameters, verify=self.verify,
+            proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
+        return resp.json()
+
 class CollectionResource(Resource):
 
     @property
@@ -287,7 +405,7 @@ class CollectionResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
-    def items(self, collection_id, archived=False):
+    def items(self, collection_id="root", archived=False):
         url = "{}/{}/items".format(self.endpoint, collection_id)
         if archived:
             url = "{}?archived=true"
@@ -298,7 +416,7 @@ class CollectionResource(Resource):
             proxies=self.proxies
         )
         Resource.validate_response(response=resp)
-        return resp.json()
+        return resp.json()["data"]
 
 
     def post(self, name, color="#000000", **kwargs):
@@ -631,6 +749,11 @@ class Client(object):
                                 token=self.token,
                                 verify=self.verify)
 
+    @property
+    def dashboards(self):
+        return DashboardResource(base_url=self.base_url,
+                                token=self.token,
+                                verify=self.verify)
     @property
     def cards(self):
         return CardResource(base_url=self.base_url,
