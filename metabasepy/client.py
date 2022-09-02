@@ -702,7 +702,6 @@ class Client(object):
 
     def setup(
         self,
-        project_id,
         path_to_cred_file,
         database="bigquery-cloud-sdk",
     ):
@@ -717,6 +716,12 @@ class Client(object):
 
         with open(path_to_cred_file, "r") as f:
             service_account_json = f.read()
+
+        try:
+            project_id = json.loads(service_account_json)['project_id']
+        except KeyError:
+            raise ValueError("Invalid credentials file provided")
+            
         request_data = {
             "token": setup_token,
             "user": {
