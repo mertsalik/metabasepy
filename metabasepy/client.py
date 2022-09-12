@@ -44,6 +44,7 @@ class RequestException(Exception):
 
 class Resource(object):
     def __init__(self, **kwargs):
+        self.client = kwargs.get("client")
         self.base_url = kwargs.get("base_url")
         self.token = kwargs.get("token")
         self.verify = kwargs.get("verify", True)
@@ -200,10 +201,10 @@ class CardResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
-    def post(self, name, json=None, **kwargs):
+    def post(self, json=None, **kwargs):
         if not json:
             json = {
-                "name": name,
+                "name": kwargs['name'],
                 "display": kwargs.get("display", "scalar"),
                 "visualization_settings": kwargs.get("visualization_settings", {}),
                 "dataset_query": kwargs.get("dataset_query", None),
@@ -219,7 +220,7 @@ class CardResource(Resource):
         )
         Resource.validate_response(response=resp)
         json_response = resp.json()
-        return json_response["id"]
+        return json_response    
 
     def put(self, card_id, **kwargs):
         url = "{}/{}".format(self.endpoint, card_id)
@@ -586,6 +587,63 @@ class UtilityResource(Resource):
         return resp.json()
 
 
+class TableResource(Resource):
+    @property
+    def endpoint(self):
+        return "{}/api/table".format(self.base_url)
+
+    def get(self, table_id=None):
+        url = self.endpoint
+        if table_id:
+            url = "{}/{}".format(url, table_id)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def fields(self, table_id):
+        url = "{}/{}/query_metadata".format(self.endpoint, table_id)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+        print(url)
+        Resource.validate_response(response=resp)
+        return resp.json()['fields']
+
+    def get_by_name_and_schema(self, name, schema):
+        all_tables = self.get()
+        return next((table for table in all_tables if table["name"] == name and table["schema"] == schema), None)
+
+
+class FieldResource(Resource):
+    @property
+    def endpoint(self):
+        return "{}/api/field".format(self.base_url)
+
+    def get(self, field_id):
+
+        url = "{}/{}".format(self.endpoint, field_id)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+        Resource.validate_response(response=resp)
+        return resp.json()
+
+    def get_by_name_and_table(self, name: str, table_id: int):
+        all_fields = self.client.tables.fields(table_id)
+
+        return next((field for field in all_fields if field["name"] == name), None)
+
 class DatasetCommand(ApiCommand):
     @staticmethod
     def validate_export_format(export_format_value):
@@ -721,10 +779,12 @@ class Client(object):
             project_id = json.loads(service_account_json)['project_id']
         except KeyError:
             raise ValueError("Invalid credentials file provided")
-            
+
         request_data = {
             "token": setup_token,
             "user": {
+                "first_name": "admin",
+                "last_name": "admin",
                 "email": self.__username,
                 "password": self.__passw,
                 "password_confirm": self.__passw,
@@ -820,3 +880,44 @@ class Client(object):
         return DatasetCommand(
             base_url=self.base_url, token=self.token, verify=self.verify
         )
+
+    @property
+    def tables(self):
+        return TableResource(
+            base_url=self.base_url, token=self.token, verify=self.verify
+        )
+
+    @property
+    def fields(self):
+        return FieldResource(
+            client=self, base_url=self.base_url, token=self.token, verify=self.verify
+        )
+# {
+#     "token": "0caf75dc-30b9-4590-bf59-8f9abd523348",
+#     "user": {
+#         "first_name": "ilya",
+#         "last_name": "sapunov",
+#         "email": "sapunov@mail.ru",
+#         "site_name": "epoch8.co",
+#         "password": "677df8Rq",
+#         "password_confirm": "677df8Rq"
+#     },
+#     "database": {
+#         "engine": "bigquery-cloud-sdk",
+#         "name": "our bq",
+#         "details": {
+#             "project-id": "commonwealth-356813",
+#             "service-account-json": "{\n  \"type\": \"service_account\",\n  \"project_id\": \"commonwealth-356813\",\n  \"private_key_id\": \"ee28f5456668f78b7cae9e7c5b13b0b26c141f3f\",\n  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDrYHQwY9qRup6y\\nK3owhPctHCZotbsm5mafVCUbVZJVV7c096zExc+q9Ct2qAFh8yHWtBaFevj96KkJ\\nvVe68B7mcQgku9Dp8BlCxbVvEZ090gJSoV9M3KUY+9+uA2u0quEfsV+HAwuQXZty\\nF8Sql+knAVYepJY+wzSKj1vH5kujp7t8mEwx/HXuzBvfcMVV7XSaMhaN9aBwrlj1\\n3gDCLLT8okFOFPhcw9m11UKy9VwDK5y2hfvN8n9kiansLA7woAzM2Ca24Kryglqi\\nVnN643nfzd/gWyrTkmtoAXJHue+OLlnY6AdT8KB74zcrs0JupPAQvlVfJioR5z3E\\nFT3WuiFpAgMBAAECggEAOeuXS90WiOvSZ2eZft0JchlOPlASCMWDlUuAghRxmPyn\\nwan84sMGkjvZgi5fgLnypsHUFO6o3Npm1lW4g/DYub4w0dFB3H9PyAWc2wMLnY3T\\nMoAxUlmtatN4PHrtAx1VnpXoOvH9432VZeMBazVMk2OZzJqVukYQ5NPYMv2xuUhx\\nVrzsrwYzALAq6T4omUEedWKXS3XHjtO3+23bLzl6Aw2aPs2NHTIHzQ8yGHDkhhbh\\ng35KxvOg9eyIpeuFPzofLQG0Njpd52X0IC8cPtOUS8qMgIxqzrRXzOqZAdqyK4Al\\nRploAJfchApacCNbsPG7gUHJdYk7rJgQgNOFrxIGvQKBgQD8wFW9ayI2ZbkaezRE\\nZN9x+BJ/M3GnxWEfdiZymKa5Q8v2AGdu2rNIWVUdORUa6dYCNInz5ARomOVxJKZc\\nhGmfJHRlFz9xwdWMZmBeWDYPIQl3HDWdMeJv5KXhEVaOHvvRpN+HOfOnnpKZX/2c\\nWbaeriGUtOME7wQcUlJe2YygswKBgQDuZvLtUrhfZXdV4eDBJTie45I04udbsokq\\n+MpjVTbIvgCT55htEN1r/hUCo28vMYEKhk4ooFDbxGUlMxTw+GPadMTzCldsTuKw\\nhBK2YnIwaxDq0gGHjMdrnHbK2AGQi5dJsgvK6mp8MRF2Rw3EnlhtsE+X9YKK4CAV\\n04tuUmDLcwKBgQCeFjLKkhrJCWD4ljz/1lQH9dCj7OpWtFbmFcFAhggp8qS8zk3j\\ngTkHtJBPAegYeE+Z+4CZonG7dn50ASdo0I07s9J1dFADd+h4s4PtHqFZXyGLdYJ3\\nOr9Vmx7BolWP+QMqgkQpUW771Wv+MJLw2xAlOebZGzavXEwm5rqMhue1jwKBgQCk\\n2h+FqDvCC6HXi1gldx2OEYNaesTNDcn4Iw2gXp6BdZFktTMbyBu0v3+70VPi6HJ4\\n2qJVSXZgYZAnhwkmEDzMJQ7DmRUW2f27Xbiq0axweri6B/nyx5Bmg01JutBqKXy2\\nAx5QdISp2CxhA4Urvusa/l4rkCNy8MR/E0dJREGWrQKBgHgg03IKXGVNvYN0maXY\\nRNc34tTMP6HSOOKz6UW7IRaOnCJuUqARbE1vH6s2AKtvu4ftZvaLXczvmatO73ev\\n/ziYwhYvv3aynQnLh9SycLclRQTYJpabrVY97ENtGF5eAHKoQ8z05QiBg8ezoMrd\\nRVUih5HrcpDrAisYT+ik+Q3u\\n-----END PRIVATE KEY-----\\n\",\n  \"client_email\": \"bi-worker@commonwealth-356813.iam.gserviceaccount.com\",\n  \"client_id\": \"116904083408097733561\",\n  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/bi-worker%40commonwealth-356813.iam.gserviceaccount.com\"\n}",
+#             "dataset-filters-type": "all",
+#             "advanced-options": false,
+#             "ssl": true
+#         },
+#         "is_full_sync": true
+#     },
+#     "invite": null,
+#     "prefs": {
+#         "site_name": "epoch8.co",
+#         "site_locale": "ru",
+#         "allow_tracking": "true"
+#     }
+# }

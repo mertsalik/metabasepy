@@ -48,11 +48,11 @@ def copy_dashboard(
     destination_collection_id,
     ):
     source_dashboard = source_client.dashboards.get(source_dashboard_id)
-    dup_dashboard_id = destination_client.dashboards.post(destination_dashboard_name, **source_dashboard)
+    dup_dashboard_id = destination_client.dashboards.post(**source_dashboard)
 
     source_dashboard_card_IDs = [ i['card_id'] for i in source_dashboard['ordered_cards'] if i['card_id'] is not None ]
     for card_id in source_dashboard_card_IDs:
-        dup_card_id = copy_card(source_card_id=card_id, destination_collection_id=destination_collection_id)
+        dup_card_id = copy_card(source_card_id=card_id, destination_collection_id=destination_collection_id)["id"]
 
         destination_client.dashboards.post_cards(dup_dashboard_id, dup_card_id)
 
@@ -82,7 +82,7 @@ def create_card(collection_id=None, custom_json=None):
         raise ValueError
     assert type(custom_json) == dict
     # Check whether the provided json has the required info or not
-    complete_json = True
+    is_complete_json = True
     for item in ['name', 'dataset_query', 'display']:
         if item not in custom_json:
             complete_json = False
@@ -100,11 +100,24 @@ def create_card(collection_id=None, custom_json=None):
         custom_json['collection_id'] = collection_id
 
 
-    if complete_json:
+    if is_complete_json:
         # Add visualization_settings if it is not present in the custom_json
         if 'visualization_settings' not in custom_json:
             custom_json['visualization_settings'] = {}
+        
+        source_table = source_client.tables.get(custom_json["table_id"])
+        source_table_fields = source_client.tables.fields(custom_json["table_id"])
 
+        destination_table = destination_client.tables.get_by_name_and_schema(source_table['name'], "dbt_dev")
+        if not destination_table:
+            raise ValueError("There is no such table in destination metabase")
+
+        destination_table_id = destination_table["id"]
+        custom_json_query = custom_json["dataset_query"]["query"]
+        map_query(custom_json_query, destination_table_id)
+        custom_json["table_id"] = destination_table_id
+        custom_json["dataset_query"]["query"]["source-table"] = destination_table_id
+        
         # Create the card using only the provided custom_json 
         res = destination_client.cards.post(json=custom_json)
         if res and not res.get('error'):
@@ -113,6 +126,32 @@ def create_card(collection_id=None, custom_json=None):
         else:
             print('Card Creation Failed.\n', res)
             return res
+    raise ValueError("card cannot be created")
+
+
+def map_query(query, destination_table_id):
+    query_type_index = 0
+    field_id_index = 1
+    if isinstance(query, dict):
+        query = query.values()
+    for field in query:
+
+        if type(field) not in (list, dict):
+            continue
+
+        if type(field) == list and field[query_type_index] == 'field':
+            field[field_id_index] = replace_field_id(field[field_id_index], destination_table_id)
+
+        map_query(field, destination_table_id)
+
+    return 
+
+
+def replace_field_id(source_field_id, destination_table_id):
+    field_name = source_client.fields.get(source_field_id)['name']
+    destination_table_fields = destination_client.tables.fields(destination_table_id)
+    destination_table_names = {field['name']:field['id'] for field in destination_table_fields}
+    return destination_table_names[field_name]
 
 
 if __name__ == '__main__':
