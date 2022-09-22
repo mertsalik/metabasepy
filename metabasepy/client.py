@@ -613,7 +613,6 @@ class TableResource(Resource):
             verify=self.verify,
             proxies=self.proxies,
         )
-        print(url)
         Resource.validate_response(response=resp)
         return resp.json()['fields']
 
