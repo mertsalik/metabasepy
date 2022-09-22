@@ -62,7 +62,7 @@ class Resource(object):
                 raise RequestException(message=response.content)
         elif request_method == "POST":
             if status_code not in [200, 201, 202]:
-                raise RequestException(message=response.content)
+                raise RequestException(response.content)
         elif request_method == "PUT":
             if status_code != 204:
                 raise RequestException(message=response.content)

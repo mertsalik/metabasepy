@@ -26,9 +26,8 @@ class CollectionException(Exception):
         Exception.__init__(self, msg, *args, **kwargs)
 
 
-def migrate(source_client, destination_client, collection_id):
+def migrate_collection(source_client, destination_client, collection_id):
     collection_items = source_client.collections.items(collection_id=collection_id)
-    
     for item in collection_items:
 
         if item['model'] == 'dashboard':
@@ -48,6 +47,7 @@ def copy_dashboard(
     destination_collection_id,
     ):
     source_dashboard = source_client.dashboards.get(source_dashboard_id)
+    source_dashboard["collection_id"] = None
     dup_dashboard_id = destination_client.dashboards.post(**source_dashboard)
 
     source_dashboard_card_IDs = [ i['card_id'] for i in source_dashboard['ordered_cards'] if i['card_id'] is not None ]
@@ -64,13 +64,13 @@ def copy_card(
     ):
 
     source_card = source_client.cards.get(source_card_id)
-    source_card['collection_id'] = destination_collection_id
+    source_card['collection_id'] = None
 
     if source_card.get('description') == '': 
         source_card['description'] = None
 
     # Save as a new card
-    res = create_card(custom_json=source_card, collection_id=destination_collection_id)
+    res = create_card(custom_json=source_card, collection_id=None)
 
     # Return the id of the created card
     return res
@@ -108,9 +108,9 @@ def create_card(collection_id=None, custom_json=None):
         source_table = source_client.tables.get(custom_json["table_id"])
         source_table_fields = source_client.tables.fields(custom_json["table_id"])
 
-        destination_table = destination_client.tables.get_by_name_and_schema(source_table['name'], "dbt_dev")
+        destination_table = destination_client.tables.get_by_name_and_schema(source_table['name'], "dbt_prod")
         if not destination_table:
-            raise ValueError("There is no such table in destination metabase")
+            raise ValueError("There is no such table in destination bigquery")
 
         destination_table_id = destination_table["id"]
         custom_json_query = custom_json["dataset_query"]["query"]
@@ -186,4 +186,4 @@ if __name__ == '__main__':
 
     collection_id = configuration.get("source_collection_id", "root")
 
-    migrate(source_client=source_client, destination_client=destination_client, collection_id=collection_id)
+    migrate_collection(source_client=source_client, destination_client=destination_client, collection_id=collection_id)
