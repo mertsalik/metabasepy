@@ -28,6 +28,10 @@ class CollectionException(Exception):
 
 def migrate_collection(source_client, destination_client, collection_id):
     collection_items = source_client.collections.items(collection_id=collection_id)
+    if collection_id is not None:
+        destination_collection_id = destination_client.collections.post(
+            name=source_client.collections.get(collection_id)['name']
+            )['id']
     for item in collection_items:
 
         if item['model'] == 'dashboard':
@@ -36,7 +40,7 @@ def migrate_collection(source_client, destination_client, collection_id):
             print('Copying the dashboard "{}" ...'.format(dashboard_name))
             copy_dashboard(
                 source_dashboard_id=dashboard_id,
-                destination_collection_id=collection_id,
+                destination_collection_id=destination_collection_id,
                 destination_dashboard_name=dashboard_name,
             )
 
@@ -47,7 +51,7 @@ def copy_dashboard(
     destination_collection_id,
     ):
     source_dashboard = source_client.dashboards.get(source_dashboard_id)
-    source_dashboard["collection_id"] = None
+    source_dashboard["collection_id"] = destination_collection_id
     dup_dashboard_id = destination_client.dashboards.post(**source_dashboard)
 
     source_dashboard_card_IDs = [ i['card_id'] for i in source_dashboard['ordered_cards'] if i['card_id'] is not None ]
@@ -64,13 +68,13 @@ def copy_card(
     ):
 
     source_card = source_client.cards.get(source_card_id)
-    source_card['collection_id'] = None
+    source_card['collection_id'] = destination_collection_id
 
     if source_card.get('description') == '': 
         source_card['description'] = None
 
     # Save as a new card
-    res = create_card(custom_json=source_card, collection_id=None)
+    res = create_card(custom_json=source_card, collection_id=destination_collection_id)
 
     # Return the id of the created card
     return res
@@ -113,10 +117,12 @@ def create_card(collection_id=None, custom_json=None):
             raise ValueError("There is no such table in destination bigquery")
 
         destination_table_id = destination_table["id"]
+        destination_table_database = destination_table['db_id']
         custom_json_query = custom_json["dataset_query"]["query"]
         map_query(custom_json_query, destination_table_id)
         custom_json["table_id"] = destination_table_id
         custom_json["dataset_query"]["query"]["source-table"] = destination_table_id
+        custom_json["dataset_query"]["database"] = destination_table_database
         
         # Create the card using only the provided custom_json 
         res = destination_client.cards.post(json=custom_json)
