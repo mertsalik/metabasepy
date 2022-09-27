@@ -59,16 +59,16 @@ class Resource(object):
         status_code = response.status_code
         if request_method == "GET":
             if status_code != 200:
-                raise RequestException(message=response.content)
+                raise RequestException(response.content)
         elif request_method == "POST":
             if status_code not in [200, 201, 202]:
                 raise RequestException(response.content)
         elif request_method == "PUT":
-            if status_code != 204:
-                raise RequestException(message=response.content)
+            if status_code >= 204:
+                raise RequestException(response.content)
         elif request_method == "DELETE":
             if status_code != 204:
-                raise RequestException(message=response.content)
+                raise RequestException(response.content)
 
     @property
     def endpoint(self):
@@ -204,7 +204,7 @@ class CardResource(Resource):
     def post(self, json=None, **kwargs):
         if not json:
             json = {
-                "name": kwargs['name'],
+                "name": kwargs["name"],
                 "display": kwargs.get("display", "scalar"),
                 "visualization_settings": kwargs.get("visualization_settings", {}),
                 "dataset_query": kwargs.get("dataset_query", None),
@@ -220,7 +220,7 @@ class CardResource(Resource):
         )
         Resource.validate_response(response=resp)
         json_response = resp.json()
-        return json_response    
+        return json_response
 
     def put(self, card_id, **kwargs):
         url = "{}/{}".format(self.endpoint, card_id)
@@ -331,6 +331,33 @@ class DashboardResource(Resource):
         Resource.validate_response(response=resp)
         json_response = resp.json()
         return json_response["id"]
+
+    def put_cards(self, dashboard_id, dashboard_card_id, source_card):
+        request_data = {
+            "cards": [
+                {
+                    "id": dashboard_card_id,
+                    "row": source_card["row"],
+                    "col": source_card["col"],
+                    "sizeX": source_card["sizeX"],
+                    "sizeY": source_card["sizeY"],
+                    "series": source_card["series"],
+                    "visualization_settings": source_card["visualization_settings"],
+                    "parameter_mappings": source_card["parameter_mappings"],
+                }
+            ]
+        }
+        url = "{}/{}/cards".format(self.endpoint, dashboard_id)
+        resp = requests.put(
+            url=url,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+        Resource.validate_response(response=resp)
+        json_response = resp.json()
+        return json_response
 
     def put(self, card_id, **kwargs):
         url = "{}/{}".format(self.endpoint, card_id)
@@ -614,11 +641,18 @@ class TableResource(Resource):
             proxies=self.proxies,
         )
         Resource.validate_response(response=resp)
-        return resp.json()['fields']
+        return resp.json()["fields"]
 
     def get_by_name_and_schema(self, name, schema):
         all_tables = self.get()
-        return next((table for table in all_tables if table["name"] == name and table["schema"] == schema), None)
+        return next(
+            (
+                table
+                for table in all_tables
+                if table["name"] == name and table["schema"] == schema
+            ),
+            None,
+        )
 
 
 class FieldResource(Resource):
@@ -642,6 +676,7 @@ class FieldResource(Resource):
         all_fields = self.client.tables.fields(table_id)
 
         return next((field for field in all_fields if field["name"] == name), None)
+
 
 class DatasetCommand(ApiCommand):
     @staticmethod
@@ -775,7 +810,7 @@ class Client(object):
             service_account_json = f.read()
 
         try:
-            project_id = json.loads(service_account_json)['project_id']
+            project_id = json.loads(service_account_json)["project_id"]
         except KeyError:
             raise ValueError("Invalid credentials file provided")
 
@@ -891,6 +926,8 @@ class Client(object):
         return FieldResource(
             client=self, base_url=self.base_url, token=self.token, verify=self.verify
         )
+
+
 # {
 #     "token": "0caf75dc-30b9-4590-bf59-8f9abd523348",
 #     "user": {

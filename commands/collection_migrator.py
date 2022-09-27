@@ -54,11 +54,14 @@ def copy_dashboard(
     source_dashboard["collection_id"] = destination_collection_id
     dup_dashboard_id = destination_client.dashboards.post(**source_dashboard)
 
-    source_dashboard_card_IDs = [ i['card_id'] for i in source_dashboard['ordered_cards'] if i['card_id'] is not None ]
-    for card_id in source_dashboard_card_IDs:
-        dup_card_id = copy_card(source_card_id=card_id, destination_collection_id=destination_collection_id)["id"]
+    for card in source_dashboard['ordered_cards']:
+        card_id = card["card_id"]
+        if card_id is not None:
+            card_id = copy_card(source_card_id=card_id, destination_collection_id=destination_collection_id)["id"]
 
-        destination_client.dashboards.post_cards(dup_dashboard_id, dup_card_id)
+        dashboard_card_id = destination_client.dashboards.post_cards(dup_dashboard_id, card_id)
+
+        destination_client.dashboards.put_cards(dup_dashboard_id, dashboard_card_id, card)
 
     return dup_dashboard_id
 
