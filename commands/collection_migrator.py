@@ -43,6 +43,23 @@ def migrate_collection(source_client, destination_client, collection_id):
                 destination_dashboard_name=dashboard_name,
             )
 
+def migrate_metrics(source_client, destination_client):
+    source_metrics = source_client.metrics.get()
+    for metric in source_metrics:
+        destination_table_id = get_destination_table_id(metric["table_id"])
+        metric["table_id"] = destination_table_id
+        metric["definition"]["source-table"] = destination_table_id
+        metric_query = metric["definition"]["aggregation"]
+        map_query(metric_query)
+        destination_client.metrics.post(**metric)
+
+
+
+def get_destination_table_id(source_table_id):
+    source_table = source_client.tables.get(source_table_id)
+    table_name, schema_name = source_table['name'], source_table["schema"]
+    destination_table = destination_client.tables.get_by_name_and_schema(table_name, schema_name)
+    return destination_table['id']
 
 def copy_dashboard(
     source_dashboard_id, 
@@ -107,7 +124,6 @@ def create_card(collection_id=None, custom_json=None):
 
 
     if is_complete_json:
-        # Add visualization_settings if it is not present in the custom_json
         if 'visualization_settings' not in custom_json:
             custom_json['visualization_settings'] = {}
         
@@ -126,7 +142,6 @@ def create_card(collection_id=None, custom_json=None):
         custom_json["dataset_query"]["query"]["source-table"] = destination_table_id
         custom_json["dataset_query"]["database"] = destination_table_database
         
-        # Create the card using only the provided custom_json 
         res = destination_client.cards.post(json=custom_json)
         if res and not res.get('error'):
             print('The card was created successfully.')
@@ -156,10 +171,21 @@ def map_query(query):
             fk_field_id = field[fk_field_index]
             if fk_field_id and "source-field" in fk_field_id:
                 fk_field_id["source-field"] = get_destination_field_id(fk_field_id["source-field"])
+
+        elif type(field) == list and field[query_type_index] == 'metric':
+            source_metric_id = field[field_id_index]
+            destination_metric_id = get_destination_metric_id(source_metric_id)
+            field[field_id_index] = destination_metric_id
+
         map_query(field)
 
     return 
 
+
+def get_destination_metric_id(source_metric_id):
+    source_metric = source_client.metrics.get(source_metric_id)
+    destination_metric_id = destination_client.metrics.get_by_name(source_metric["name"])["id"]
+    return destination_metric_id
 
 def get_destination_field_id(source_field_id):
     source_field = source_client.fields.get(source_field_id)
@@ -222,4 +248,5 @@ if __name__ == '__main__':
     #         except ValueError:
     #             continue
     #         update_destination_field(source_field['id'], destination_field_id)
+    # migrate_metrics(source_client=source_client, destination_client=destination_client)
     migrate_collection(source_client=source_client, destination_client=destination_client, collection_id=collection_id)

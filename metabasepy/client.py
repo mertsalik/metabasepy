@@ -1,4 +1,5 @@
 from email.mime import base
+from http import client
 import re
 from urllib import request
 
@@ -684,6 +685,33 @@ class FieldResource(Resource):
 
         return next((field for field in all_fields if field["name"] == name), None)
 
+class MetricResource(Resource):
+    @property
+    def endpoint(self):
+        return "{}/api/metric".format(self.base_url)
+    
+    def get(self, metric_id=None):
+        url = self.endpoint
+        if metric_id:
+            url = "{}/{}".format(url, metric_id)
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+        Resource.validate_response(response=resp)
+        return resp.json()
+    
+    def get_by_name(self, name):
+        all_metrics = self.client.metrics.get()
+        return next((metric for metric in all_metrics if metric["name"] == name), None)
+
+    def post(self, **kwargs):
+        resp = requests.post(
+            url=self.endpoint, json=kwargs, headers=self.prepare_headers(), proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
 
 class DatasetCommand(ApiCommand):
     @staticmethod
@@ -934,6 +962,11 @@ class Client(object):
             client=self, base_url=self.base_url, token=self.token, verify=self.verify
         )
 
+    @property
+    def metrics(self):
+        return MetricResource(
+            client=self, base_url=self.base_url, token=self.token, verify=self.verify
+        )
 
 # {
 #     "token": "0caf75dc-30b9-4590-bf59-8f9abd523348",
