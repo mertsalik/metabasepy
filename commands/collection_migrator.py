@@ -27,13 +27,12 @@ class CollectionException(Exception):
 
 
 def migrate_collection(source_client, destination_client, collection_id):
+    destination_collection_id = destination_client.collections.post(
+        name=source_client.collections.get(collection_id)['name']
+        )['id']
     collection_items = source_client.collections.items(collection_id=collection_id)
-    if collection_id is not None:
-        destination_collection_id = destination_client.collections.post(
-            name=source_client.collections.get(collection_id)['name']
-            )['id']
+    
     for item in collection_items:
-
         if item['model'] == 'dashboard':
             dashboard_id = item['id']
             dashboard_name = item['name']
@@ -92,7 +91,7 @@ def create_card(collection_id=None, custom_json=None):
     is_complete_json = True
     for item in ['name', 'dataset_query', 'display']:
         if item not in custom_json:
-            complete_json = False
+            is_complete_json = False
             print('The provided json is detected as partial.')
             break
 
@@ -122,7 +121,7 @@ def create_card(collection_id=None, custom_json=None):
         destination_table_id = destination_table["id"]
         destination_table_database = destination_table['db_id']
         custom_json_query = custom_json["dataset_query"]["query"]
-        map_query(custom_json_query, destination_table_id)
+        map_query(custom_json_query)
         custom_json["table_id"] = destination_table_id
         custom_json["dataset_query"]["query"]["source-table"] = destination_table_id
         custom_json["dataset_query"]["database"] = destination_table_database
@@ -138,9 +137,10 @@ def create_card(collection_id=None, custom_json=None):
     raise ValueError("card cannot be created")
 
 
-def map_query(query, destination_table_id):
+def map_query(query):
     query_type_index = 0
     field_id_index = 1
+    fk_field_index = 2
     if isinstance(query, dict):
         query = query.values()
     for field in query:
@@ -149,19 +149,38 @@ def map_query(query, destination_table_id):
             continue
 
         if type(field) == list and field[query_type_index] == 'field':
-            field[field_id_index] = replace_field_id(field[field_id_index], destination_table_id)
-
-        map_query(field, destination_table_id)
+            source_field_id = field[field_id_index]
+            destination_field_id = get_destination_field_id(source_field_id)
+            field[field_id_index] = destination_field_id
+            update_destination_field(source_field_id, destination_field_id)
+            fk_field_id = field[fk_field_index]
+            if fk_field_id and "source-field" in fk_field_id:
+                fk_field_id["source-field"] = get_destination_field_id(fk_field_id["source-field"])
+        map_query(field)
 
     return 
 
 
-def replace_field_id(source_field_id, destination_table_id):
-    field_name = source_client.fields.get(source_field_id)['name']
+def get_destination_field_id(source_field_id):
+    source_field = source_client.fields.get(source_field_id)
+    source_table_id = source_field["table_id"]
+    source_table = source_client.tables.get(source_table_id)
+    destination_table = destination_client.tables.get_by_name_and_schema(source_table['name'], "dbt_prod")
+    if not destination_table:
+        raise ValueError(f"There is no such table in destination bigquery - {source_table['name']}")
+    destination_table_id = destination_table["id"]
     destination_table_fields = destination_client.tables.fields(destination_table_id)
     destination_table_names = {field['name']:field['id'] for field in destination_table_fields}
-    return destination_table_names[field_name]
+    return destination_table_names[source_field['name']]
 
+def update_destination_field(source_field_id, destination_field_id):
+    source_field = source_client.fields.get(source_field_id)
+    source_field['id'] = destination_field_id
+    source_field.pop('table_id')
+    if source_field.get("fk_target_field_id"):
+        source_field["fk_target_field_id"] = get_destination_field_id(source_field["fk_target_field_id"])
+    destination_client.fields.put(destination_field_id, **source_field)
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -180,7 +199,6 @@ if __name__ == '__main__':
                         )
     args = parser.parse_args()
 
-    credentials = []
     with open(args.configuration_file_path, 'r') as config_file:
         configuration = json.load(config_file)
 
@@ -195,4 +213,13 @@ if __name__ == '__main__':
 
     collection_id = configuration.get("source_collection_id", "root")
 
+    # tables_ids = [table["id"] for table in source_client.tables.get() if table['schema'] == "dbt_dev"]
+    # for table_id in tables_ids:
+    #     source_fields = source_client.tables.fields(table_id)
+    #     for source_field in source_fields:
+    #         try:
+    #             destination_field_id = get_destination_field_id(source_field["id"])
+    #         except ValueError:
+    #             continue
+    #         update_destination_field(source_field['id'], destination_field_id)
     migrate_collection(source_client=source_client, destination_client=destination_client, collection_id=collection_id)

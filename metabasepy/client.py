@@ -672,6 +672,13 @@ class FieldResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
+    def put(self, field_id, **kwargs):
+        url = "{}/{}".format(self.endpoint, field_id)
+        resp = requests.put(
+            url=url, json=kwargs, headers=self.prepare_headers(), proxies=self.proxies
+        )
+        Resource.validate_response(response=resp)
+
     def get_by_name_and_table(self, name: str, table_id: int):
         all_fields = self.client.tables.fields(table_id)
 
