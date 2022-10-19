@@ -703,9 +703,9 @@ class MetricResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
     
-    def get_by_name(self, name):
+    def get_by_name_and_table_id(self, name, table_id):
         all_metrics = self.client.metrics.get()
-        return next((metric for metric in all_metrics if metric["name"] == name), None)
+        return next((metric for metric in all_metrics if metric["name"] == name and metric["definition"]["source-table"] == table_id), None)
 
     def post(self, **kwargs):
         resp = requests.post(

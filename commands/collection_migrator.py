@@ -10,6 +10,7 @@ from metabasepy import Client, RequestException
 
 logger = logging.getLogger(__name__)
 
+ENVIRONMENTS = ["test"]
 
 class ConfigurationException(Exception):
     def __init__(self, msg=None, *args, **kwargs):
@@ -26,9 +27,10 @@ class CollectionException(Exception):
         Exception.__init__(self, msg, *args, **kwargs)
 
 
-def migrate_collection(source_client, destination_client, collection_id):
+def migrate_collection(source_client: Client, destination_client: Client, collection_id: int, env: str):
+    source_collection_name = source_client.collections.get(collection_id)['name']
     destination_collection_id = destination_client.collections.post(
-        name=source_client.collections.get(collection_id)['name']
+        name=f"{source_collection_name} {env.capitalize()}"
         )['id']
     collection_items = source_client.collections.items(collection_id=collection_id)
     
@@ -43,22 +45,26 @@ def migrate_collection(source_client, destination_client, collection_id):
                 destination_dashboard_name=dashboard_name,
             )
 
-def migrate_metrics(source_client, destination_client):
+def migrate_metrics(source_client: Client, destination_client: Client, env: str):
+    print(f"Migrating metrics for env {env}")
     source_metrics = source_client.metrics.get()
+    destination_metrics = destination_client.metrics.get()
     for metric in source_metrics:
         destination_table_id = get_destination_table_id(metric["table_id"])
         metric["table_id"] = destination_table_id
         metric["definition"]["source-table"] = destination_table_id
         metric_query = metric["definition"]["aggregation"]
         map_query(metric_query)
+        metric["name"] = f'{metric["name"]} {env.capitalize()}'
+        # if metric["name"] not in [destination_metric['name'] for destination_metric in destination_metrics]:
         destination_client.metrics.post(**metric)
 
 
 
 def get_destination_table_id(source_table_id):
     source_table = source_client.tables.get(source_table_id)
-    table_name, schema_name = source_table['name'], source_table["schema"]
-    destination_table = destination_client.tables.get_by_name_and_schema(table_name, schema_name)
+    table_name = source_table['name']
+    destination_table = destination_client.tables.get_by_name_and_schema(table_name, f"dbt_{env}")
     return destination_table['id']
 
 def copy_dashboard(
@@ -130,9 +136,9 @@ def create_card(collection_id=None, custom_json=None):
         source_table = source_client.tables.get(custom_json["table_id"])
         source_table_fields = source_client.tables.fields(custom_json["table_id"])
 
-        destination_table = destination_client.tables.get_by_name_and_schema(source_table['name'], "dbt_prod")
+        destination_table = destination_client.tables.get_by_name_and_schema(source_table['name'], f"dbt_{env}")
         if not destination_table:
-            raise ValueError("There is no such table in destination bigquery")
+            raise ValueError(f"There is no such table in destination bigquery - {source_table['name']}")
 
         destination_table_id = destination_table["id"]
         destination_table_database = destination_table['db_id']
@@ -144,7 +150,7 @@ def create_card(collection_id=None, custom_json=None):
         
         res = destination_client.cards.post(json=custom_json)
         if res and not res.get('error'):
-            print('The card was created successfully.')
+            print(f'The card {res["name"]} was created successfully.')
             return res
         else:
             print('Card Creation Failed.\n', res)
@@ -184,14 +190,17 @@ def map_query(query):
 
 def get_destination_metric_id(source_metric_id):
     source_metric = source_client.metrics.get(source_metric_id)
-    destination_metric_id = destination_client.metrics.get_by_name(source_metric["name"])["id"]
+    source_table_id = source_metric["definition"]["source-table"]
+    source_table = source_client.tables.get(source_table_id)
+    destination_table = destination_client.tables.get_by_name_and_schema(source_table['name'], f"dbt_{env}")
+    destination_metric_id = destination_client.metrics.get_by_name_and_table_id(f'{source_metric["name"]} {env.capitalize()}', destination_table['id'])["id"]
     return destination_metric_id
 
 def get_destination_field_id(source_field_id):
     source_field = source_client.fields.get(source_field_id)
     source_table_id = source_field["table_id"]
     source_table = source_client.tables.get(source_table_id)
-    destination_table = destination_client.tables.get_by_name_and_schema(source_table['name'], "dbt_prod")
+    destination_table = destination_client.tables.get_by_name_and_schema(source_table['name'], f"dbt_{env}")
     if not destination_table:
         raise ValueError(f"There is no such table in destination bigquery - {source_table['name']}")
     destination_table_id = destination_table["id"]
@@ -239,14 +248,15 @@ if __name__ == '__main__':
 
     collection_id = configuration.get("source_collection_id", "root")
 
-    # tables_ids = [table["id"] for table in source_client.tables.get() if table['schema'] == "dbt_dev"]
-    # for table_id in tables_ids:
-    #     source_fields = source_client.tables.fields(table_id)
-    #     for source_field in source_fields:
-    #         try:
-    #             destination_field_id = get_destination_field_id(source_field["id"])
-    #         except ValueError:
-    #             continue
-    #         update_destination_field(source_field['id'], destination_field_id)
-    # migrate_metrics(source_client=source_client, destination_client=destination_client)
-    migrate_collection(source_client=source_client, destination_client=destination_client, collection_id=collection_id)
+    for env in ENVIRONMENTS:
+        tables_ids = [table["id"] for table in source_client.tables.get() if table['schema'] == f"dbt_{env}"]
+        for table_id in tables_ids:
+            source_fields = source_client.tables.fields(table_id)
+            for source_field in source_fields:
+                try:
+                    destination_field_id = get_destination_field_id(source_field["id"])
+                except ValueError:
+                    continue
+                update_destination_field(source_field['id'], destination_field_id)
+        migrate_metrics(source_client=source_client, destination_client=destination_client, env=env)
+        migrate_collection(source_client=source_client, destination_client=destination_client, collection_id=collection_id, env=env)
