@@ -75,6 +75,8 @@ def copy_dashboard(
     source_dashboard = source_client.dashboards.get(source_dashboard_id)
     source_dashboard["collection_id"] = destination_collection_id
     dup_dashboard_id = destination_client.dashboards.post(**source_dashboard)
+    parameters = {"parameters": source_dashboard["parameters"]}
+    destination_client.dashboards.put(dup_dashboard_id, **parameters)
 
     for card in source_dashboard['ordered_cards']:
         card_id = card["card_id"]
@@ -82,10 +84,17 @@ def copy_dashboard(
             card_id = copy_card(source_card_id=card_id, destination_collection_id=destination_collection_id)["id"]
 
         dashboard_card_id = destination_client.dashboards.post_cards(dup_dashboard_id, card_id)
-
+        source_parameters_mappings = card["parameter_mappings"]
+        card["parameter_mappings"] = prepare_parameters_mapping(source_parameters_mappings, card_id)
         destination_client.dashboards.put_cards(dup_dashboard_id, dashboard_card_id, card)
 
     return dup_dashboard_id
+
+def prepare_parameters_mapping(card_parameter_mappings: list, destination_card_id):
+    for parameter_mapping in card_parameter_mappings:
+        parameter_mapping["card_id"] = destination_card_id
+        map_query(parameter_mapping["target"])
+    return card_parameter_mappings
 
 def copy_card(
     source_card_id, 

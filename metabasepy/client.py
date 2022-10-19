@@ -360,8 +360,9 @@ class DashboardResource(Resource):
         json_response = resp.json()
         return json_response
 
-    def put(self, card_id, **kwargs):
-        url = "{}/{}".format(self.endpoint, card_id)
+
+    def put(self, dashboard_id, **kwargs):
+        url = "{}/{}".format(self.endpoint, dashboard_id)
         resp = requests.put(
             url=url, json=kwargs, headers=self.prepare_headers(), proxies=self.proxies
         )
@@ -405,6 +406,7 @@ class DashboardResource(Resource):
         )
         Resource.validate_response(response=resp)
         return resp.json()
+
 
 
 class CollectionResource(Resource):
@@ -968,32 +970,4 @@ class Client(object):
             client=self, base_url=self.base_url, token=self.token, verify=self.verify
         )
 
-# {
-#     "token": "0caf75dc-30b9-4590-bf59-8f9abd523348",
-#     "user": {
-#         "first_name": "ilya",
-#         "last_name": "sapunov",
-#         "email": "sapunov@mail.ru",
-#         "site_name": "epoch8.co",
-#         "password": "677df8Rq",
-#         "password_confirm": "677df8Rq"
-#     },
-#     "database": {
-#         "engine": "bigquery-cloud-sdk",
-#         "name": "our bq",
-#         "details": {
-#             "project-id": "commonwealth-356813",
-#             "service-account-json": "{\n  \"type\": \"service_account\",\n  \"project_id\": \"commonwealth-356813\",\n  \"private_key_id\": \"ee28f5456668f78b7cae9e7c5b13b0b26c141f3f\",\n  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDrYHQwY9qRup6y\\nK3owhPctHCZotbsm5mafVCUbVZJVV7c096zExc+q9Ct2qAFh8yHWtBaFevj96KkJ\\nvVe68B7mcQgku9Dp8BlCxbVvEZ090gJSoV9M3KUY+9+uA2u0quEfsV+HAwuQXZty\\nF8Sql+knAVYepJY+wzSKj1vH5kujp7t8mEwx/HXuzBvfcMVV7XSaMhaN9aBwrlj1\\n3gDCLLT8okFOFPhcw9m11UKy9VwDK5y2hfvN8n9kiansLA7woAzM2Ca24Kryglqi\\nVnN643nfzd/gWyrTkmtoAXJHue+OLlnY6AdT8KB74zcrs0JupPAQvlVfJioR5z3E\\nFT3WuiFpAgMBAAECggEAOeuXS90WiOvSZ2eZft0JchlOPlASCMWDlUuAghRxmPyn\\nwan84sMGkjvZgi5fgLnypsHUFO6o3Npm1lW4g/DYub4w0dFB3H9PyAWc2wMLnY3T\\nMoAxUlmtatN4PHrtAx1VnpXoOvH9432VZeMBazVMk2OZzJqVukYQ5NPYMv2xuUhx\\nVrzsrwYzALAq6T4omUEedWKXS3XHjtO3+23bLzl6Aw2aPs2NHTIHzQ8yGHDkhhbh\\ng35KxvOg9eyIpeuFPzofLQG0Njpd52X0IC8cPtOUS8qMgIxqzrRXzOqZAdqyK4Al\\nRploAJfchApacCNbsPG7gUHJdYk7rJgQgNOFrxIGvQKBgQD8wFW9ayI2ZbkaezRE\\nZN9x+BJ/M3GnxWEfdiZymKa5Q8v2AGdu2rNIWVUdORUa6dYCNInz5ARomOVxJKZc\\nhGmfJHRlFz9xwdWMZmBeWDYPIQl3HDWdMeJv5KXhEVaOHvvRpN+HOfOnnpKZX/2c\\nWbaeriGUtOME7wQcUlJe2YygswKBgQDuZvLtUrhfZXdV4eDBJTie45I04udbsokq\\n+MpjVTbIvgCT55htEN1r/hUCo28vMYEKhk4ooFDbxGUlMxTw+GPadMTzCldsTuKw\\nhBK2YnIwaxDq0gGHjMdrnHbK2AGQi5dJsgvK6mp8MRF2Rw3EnlhtsE+X9YKK4CAV\\n04tuUmDLcwKBgQCeFjLKkhrJCWD4ljz/1lQH9dCj7OpWtFbmFcFAhggp8qS8zk3j\\ngTkHtJBPAegYeE+Z+4CZonG7dn50ASdo0I07s9J1dFADd+h4s4PtHqFZXyGLdYJ3\\nOr9Vmx7BolWP+QMqgkQpUW771Wv+MJLw2xAlOebZGzavXEwm5rqMhue1jwKBgQCk\\n2h+FqDvCC6HXi1gldx2OEYNaesTNDcn4Iw2gXp6BdZFktTMbyBu0v3+70VPi6HJ4\\n2qJVSXZgYZAnhwkmEDzMJQ7DmRUW2f27Xbiq0axweri6B/nyx5Bmg01JutBqKXy2\\nAx5QdISp2CxhA4Urvusa/l4rkCNy8MR/E0dJREGWrQKBgHgg03IKXGVNvYN0maXY\\nRNc34tTMP6HSOOKz6UW7IRaOnCJuUqARbE1vH6s2AKtvu4ftZvaLXczvmatO73ev\\n/ziYwhYvv3aynQnLh9SycLclRQTYJpabrVY97ENtGF5eAHKoQ8z05QiBg8ezoMrd\\nRVUih5HrcpDrAisYT+ik+Q3u\\n-----END PRIVATE KEY-----\\n\",\n  \"client_email\": \"bi-worker@commonwealth-356813.iam.gserviceaccount.com\",\n  \"client_id\": \"116904083408097733561\",\n  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/bi-worker%40commonwealth-356813.iam.gserviceaccount.com\"\n}",
-#             "dataset-filters-type": "all",
-#             "advanced-options": false,
-#             "ssl": true
-#         },
-#         "is_full_sync": true
-#     },
-#     "invite": null,
-#     "prefs": {
-#         "site_name": "epoch8.co",
-#         "site_locale": "ru",
-#         "allow_tracking": "true"
-#     }
-# }
+
