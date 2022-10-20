@@ -1,7 +1,4 @@
-from email.mime import base
-from http import client
 import re
-from urllib import request
 
 import requests
 import json
@@ -829,6 +826,9 @@ class Client(object):
     def __get_setup_url(self):
         return "{}/api/setup".format(self.base_url)
 
+    def __get_email_setup_url(self):
+        return "{}/api/email".format(self.base_url)
+
     def setup(
         self,
         path_to_cred_file,
@@ -862,7 +862,7 @@ class Client(object):
             },
             "database": {
                 "engine": database,
-                "name": f"Our {database}",
+                "name": f"Our BigQuery",
                 "details": {
                     "project-id": project_id,
                     "service-account-json": service_account_json,
@@ -909,6 +909,39 @@ class Client(object):
             raise AuthorizationFailedException()
 
         self.token = json_response["id"]
+
+    def setup_email(
+        self,
+        host,
+        port,
+        security,
+        username,
+        password,
+        from_name,
+        from_address
+    ):  
+        request_headers = {"X-Metabase-Session": self.token, "Content-Type": "application/json"}
+
+        request_data = {
+            "email-smtp-host": host,
+            "email-smtp-port": port,
+            "email-smtp-security": security,
+            "email-smtp-username": username,
+            "email-smtp-password": password,
+            "email-from-name": from_name,
+            "email-from-address": from_address,
+            "email-reply-to": None
+        }
+
+        resp = requests.put(
+            url=self.__get_email_setup_url(),
+            json=request_data,
+            headers=request_headers,
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+
+        resp.raise_for_status()
 
     @property
     def databases(self):
