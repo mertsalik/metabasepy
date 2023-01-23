@@ -51,6 +51,48 @@ class Resource(object):
     def prepare_headers(self):
         return {"X-Metabase-Session": self.token, "Content-Type": "application/json"}
 
+    def _get(self, url):
+        resp = requests.get(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+        Resource.validate_response(resp)
+        return resp
+
+    def _post(self, url, json_data):
+        resp = requests.post(
+            url=url,
+            json=json_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+        Resource.validate_response(resp)
+        return resp
+
+    def _put(self, url, json_data):
+        resp = requests.put(
+            url=url,
+            json=json_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+        Resource.validate_response(resp)
+        return resp
+
+    def _delete(self, url):
+        resp = requests.delete(
+            url=url,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+        Resource.validate_response(response=resp)
+        return resp
+
     @staticmethod
     def validate_response(response):
         request_method = response.request.method
@@ -62,7 +104,7 @@ class Resource(object):
             if status_code not in [200, 201, 202]:
                 raise RequestException(response.content)
         elif request_method == "PUT":
-            if status_code >= 204:
+            if status_code >=400:
                 raise RequestException(response.content)
         elif request_method == "DELETE":
             if status_code != 204:
@@ -72,17 +114,6 @@ class Resource(object):
     def endpoint(self):
         raise NotImplementedError()
 
-    def get(self):
-        raise NotImplementedError()
-
-    def post(self, **kwargs):
-        raise NotImplementedError()
-
-    def put(self, **kwargs):
-        raise NotImplementedError()
-
-    def delete(self, **kwargs):
-        raise NotImplementedError()
 
 
 class ApiCommand(object):
@@ -276,25 +307,12 @@ class DashboardResource(Resource):
         url = self.endpoint
         if dashboard_id:
             url = "{}/{}".format(self.endpoint, dashboard_id)
-        resp = requests.get(
-            url=url,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        resp = self._get(url)
         return resp.json()
 
     def related(self, dashboard_id):
-
         url = "{}/{}/related".format(self.endpoint, dashboard_id)
-        resp = requests.get(
-            url=url,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        resp = self._get(url)
         return resp.json()
 
     def post(self, name, **kwargs):
@@ -305,28 +323,14 @@ class DashboardResource(Resource):
             "description": kwargs.get("description", None),
             "collection_id": kwargs.get("collection_id", None),
         }
-        resp = requests.post(
-            url=self.endpoint,
-            json=request_data,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        resp = self._post(self.endpoint, request_data)
         json_response = resp.json()
         return json_response["id"]
 
     def post_cards(self, dashboard_id, card_id, **kwargs):
         url = "{}/{}/cards".format(self.endpoint, dashboard_id)
         request_data = {"cardId": card_id}
-        resp = requests.post(
-            url=url,
-            json=request_data,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        resp = self._post(url, request_data)
         json_response = resp.json()
         return json_response["id"]
 
@@ -346,45 +350,23 @@ class DashboardResource(Resource):
             ]
         }
         url = "{}/{}/cards".format(self.endpoint, dashboard_id)
-        resp = requests.put(
-            url=url,
-            json=request_data,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        resp = self._put(url, request_data)
         json_response = resp.json()
         return json_response
 
 
     def put(self, dashboard_id, **kwargs):
         url = "{}/{}".format(self.endpoint, dashboard_id)
-        resp = requests.put(
-            url=url, json=kwargs, headers=self.prepare_headers(), proxies=self.proxies
-        )
-        Resource.validate_response(response=resp)
+        resp = self._put(url, kwargs)
 
     def delete(self, card_id):
         url = "{}/{}".format(self.endpoint, card_id)
-        resp = requests.delete(
-            url=url,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        resp = self._delete(url)
 
     def query(self, card_id, parameters=None):
         # TODO : add parameters usage
         url = "{}/{}/query".format(self.endpoint, card_id)
-        resp = requests.post(
-            url=url,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        resp = self._post(url, parameters)
         return resp.json()
 
     def download(self, card_id, format, parameters=None):
@@ -394,14 +376,7 @@ class DashboardResource(Resource):
         url = "{}/{}".format(url, format)
         if parameters:
             parameters = urlencode({k: json.dumps(v) for k, v in parameters.items()})
-        resp = requests.post(
-            url=url,
-            headers=self.prepare_headers(),
-            params=parameters,
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        resp = self._post(url, parameters)
         return resp.json()
 
 
@@ -417,26 +392,24 @@ class CollectionResource(Resource):
             url = "{}/{}".format(self.endpoint, collection_id)
         elif archived:
             url = "{}?archived=true"
-        resp = requests.get(
-            url=url,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        resp = self._get(url)
         return resp.json()
+
+    def get_name(self, collection_id):
+        return self.get(collection_id)["name"]
 
     def items(self, collection_id="root", archived=False):
         url = "{}/{}/items".format(self.endpoint, collection_id)
         if archived:
             url = "{}?archived=true"
-        resp = requests.get(
-            url=url,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        resp = self._get(url)
+        return resp.json()["data"]
+
+    def get_dashboards(self, collection_id="root", archived=False):
+        url = "{}/{}/items?models=dashboard".format(self.endpoint, collection_id)
+        if archived:
+            url = "{}?archived=true"
+        resp = self._get(url)
         return resp.json()["data"]
 
     def post(self, name, color="#000000", **kwargs):
@@ -445,25 +418,12 @@ class CollectionResource(Resource):
             "description": kwargs.get("description"),
             "color": color,
         }
-        resp = requests.post(
-            url=self.endpoint,
-            json=request_data,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        resp = self._post(self.endpoint, request_data)
         return resp.json()
 
     def delete(self, collection_id):
         url = "{}/{}".format(self.endpoint, collection_id)
-        resp = requests.delete(
-            url=url,
-            headers=self.prepare_headers(),
-            verify=self.verify,
-            proxies=self.proxies,
-        )
-        Resource.validate_response(response=resp)
+        self._delete()
 
 
 class UserResource(Resource):
@@ -496,13 +456,32 @@ class UserResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
-    def post(self, first_name, last_name, email, password):
+    def post(
+        self,
+        first_name: str,
+        last_name: str,
+        email: str,
+        is_superuser: bool
+        ):
         request_data = {
             "first_name": first_name,
             "last_name": last_name,
             "email": email,
-            "password": password,
+            "user_group_memberships": [
+                {
+                    "id": 1,
+                    "is_group_manager": False
+                },
+            ]
         }
+        if is_superuser:
+            request_data["user_group_memberships"].append(
+                {
+                "id": 2,
+                "is_group_manager": False
+                }
+            )
+
         resp = requests.post(
             url=self.endpoint,
             json=request_data,
@@ -613,6 +592,27 @@ class UtilityResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()
 
+class SettingsResource(Resource):
+    @property
+    def endpoint(self):
+        return "{}/api/setting".format(self.base_url)
+
+    def site_url(self, site_url):
+        url = "{}/site-url".format(self.endpoint)
+
+        request_data = {
+            "value": site_url,
+        }
+
+        resp = requests.put(
+            url=url,
+            json=request_data,
+            headers=self.prepare_headers(),
+            verify=self.verify,
+            proxies=self.proxies,
+        )
+        Resource.validate_response(response=resp)
+
 
 class TableResource(Resource):
     @property
@@ -643,13 +643,13 @@ class TableResource(Resource):
         Resource.validate_response(response=resp)
         return resp.json()["fields"]
 
-    def get_by_name_and_schema(self, name, schema):
+    def get_by_name_and_schema_and_db(self, name, schema, db):
         all_tables = self.get()
         return next(
             (
                 table
                 for table in all_tables
-                if table["name"] == name and table["schema"] == schema
+                if table["name"] == name and table["schema"] == schema and table["db_id"] == db
             ),
             None,
         )
@@ -809,10 +809,11 @@ class DatasetCommand(ApiCommand):
 
 
 class Client(object):
-    def __init__(self, username, password, base_url, **kwargs):
+    def __init__(self, username, password, base_url, db_id, **kwargs):
         self.__username = username
         self.__passw = password
         self.base_url = base_url
+        self.database_id = db_id
         self.token = kwargs.get("token")
         self.verify = kwargs.get("verify", True)
         self.proxies = kwargs.get("proxies")
@@ -906,7 +907,7 @@ class Client(object):
 
         json_response = resp.json()
         if "id" not in json_response:
-            raise AuthorizationFailedException()
+            raise AuthorizationFailedException(json_response)
 
         self.token = json_response["id"]
 
@@ -1003,4 +1004,10 @@ class Client(object):
             client=self, base_url=self.base_url, token=self.token, verify=self.verify
         )
 
+
+    @property
+    def settings(self):
+        return SettingsResource(
+            client=self, base_url=self.base_url, token=self.token, verify=self.verify
+        )
 
