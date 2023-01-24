@@ -95,3 +95,6 @@ gen
 # virtual environment
 venv/
 .venv/
+
+collab.json
+password.txt
