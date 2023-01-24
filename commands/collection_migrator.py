@@ -55,7 +55,9 @@ class MetabaseCollectionMigrator:
             if card_id is not None:
                 card_id = self.copy_card(
                     source_card_id=card_id, 
-                    )["id"]
+                    )
+                if not card_id:
+                    continue
             dest_card_id = self.dest_client.dashboards.post_cards(dest_dashboard_id, card_id)
             source_parameters_mappings = card["parameter_mappings"]
             card["parameter_mappings"] = self.prepare_parameters_mapping(source_parameters_mappings, card_id)
@@ -90,13 +92,14 @@ class MetabaseCollectionMigrator:
         if is_complete_json:
             if 'visualization_settings' not in custom_json:
                 custom_json['visualization_settings'] = {}
+            if not custom_json["table_id"]:
+                return
             source_table = self.src_client.tables.get(custom_json["table_id"])
             if not source_table:
                 return
-            # source_table_fields = source_client.tables.fields(custom_json["table_id"])
-            destination_table = self.dest_client.tables.get_by_name_and_schema_and_db(source_table['name'], f"bi", 4)
+            destination_table = self.dest_client.tables.get_by_name_and_schema_and_db(source_table['name'], source_table["schema"], 4)
             if not destination_table:
-                raise ValueError(f"There is no such table in destination bigquery - {source_table['name']}")
+                raise ValueError(f"There is no such table in destination bigquery - {source_table['schema']}.{source_table['name']}")
 
             destination_table_id = destination_table["id"]
             destination_table_database = destination_table['db_id']
@@ -109,7 +112,7 @@ class MetabaseCollectionMigrator:
             res = self.dest_client.cards.post(json=custom_json)
             if res and not res.get('error'):
                 print(f'The card {res["name"]} was created successfully.')
-                return res
+                return res["id"]
             else:
                 print('Card Creation Failed.\n', res)
                 return res
@@ -144,6 +147,8 @@ class MetabaseCollectionMigrator:
 
             if type(field) == list and field[query_type_index] == 'field':
                 source_field_id = field[field_id_index]
+                if not isinstance(source_field_id, int):
+                    continue
                 destination_field_id = self.get_destination_field_id(source_field_id)
                 field[field_id_index] = destination_field_id
                 self.update_destination_field(source_field_id, destination_field_id)
@@ -173,7 +178,7 @@ class MetabaseCollectionMigrator:
         source_field = self.src_client.fields.get(source_field_id)
         source_table_id = source_field["table_id"]
         source_table = self.src_client.tables.get(source_table_id)
-        destination_table = self.dest_client.tables.get_by_name_and_schema_and_db(source_table['name'], f"bi", 4)
+        destination_table = self.dest_client.tables.get_by_name_and_schema_and_db(source_table['name'], source_table['schema'], 4)
         if not destination_table:
             raise ValueError(f"There is no such table in destination bigquery - {source_table['name']}")
         destination_table_id = destination_table["id"]
